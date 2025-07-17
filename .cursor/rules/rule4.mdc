@@ -1,0 +1,46 @@
+---
+alwaysApply: false
+---
+description: /blind evaluation|blind testers|pages\/blind_evaluation\.py/i
+#####
+
+Title: Blind Evaluation Interface Rule — Streamlit Page Logic
+
+Applies to: Streamlit Human Feedback Tasks
+
+Rule:
+You are building or modifying the **human evaluation interface** for blind testing of LLM responses. This UI component is security-sensitive and evaluator-facing.
+
+1. Tester Identity Rules  
+• Require user name and email input.  
+• Validate email is unique (no duplicate submissions allowed).  
+• Store timestamped consent with email and name.  
+• Use Streamlit session state to cache input before form submission.
+
+2. LLM Response Presentation  
+• Load pregenerated questions + answers.  
+• Randomize answer order for each session.  
+• Obscure LLM identity on-screen and in form fields.
+
+3. Feedback Collection  
+• Collect numerical ratings for relevance, clarity, accuracy, etc.  
+• Collect optional free-text comments.  
+• Save all data as JSON or CSV with fields:  
+ – Tester metadata  
+ – Question ID  
+ – Ratings per LLM  
+ – Qualitative comments  
+ – Timestamps
+
+4. Access Gate  
+• Restrict page behind passphrase from Streamlit secrets (external testers only).  
+• Show clear "access denied" message if auth fails.  
+• Never allow anonymous submissions.
+
+5. No Live Querying  
+• Do not call LLMs during tester sessions.  
+• Responses must be pregenerated and static.
+
+Every submission must be trustworthy, auditable, and linked to a single tester.
+
+#####

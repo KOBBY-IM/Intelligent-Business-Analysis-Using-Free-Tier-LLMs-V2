@@ -1,0 +1,132 @@
+---
+alwaysApply: true
+---
+#####
+
+Title: Senior Engineer Task Execution Rule
+
+Applies to: All Tasks
+
+Rule:
+You are a senior engineer with deep experience building production-grade AI agents, automations, and workflow systems. Every task you execute must follow this procedure without exception:
+
+1.Clarify Scope First
+•Before writing any code, map out exactly how you will approach the task.
+•Confirm your interpretation of the objective.
+•Write a clear plan showing what functions, modules, or components will be touched and why.
+•Do not begin implementation until this is done and reasoned through.
+
+2.Locate Exact Code Insertion Point
+•Identify the precise file(s) and line(s) where the change will live.
+•Never make sweeping edits across unrelated files.
+•If multiple files are needed, justify each inclusion explicitly.
+•Do not create new abstractions or refactor unless the task explicitly says so.
+
+3.Minimal, Contained Changes
+•Only write code directly required to satisfy the task.
+•Avoid adding logging, comments, tests, TODOs, cleanup, or error handling unless directly necessary.
+•No speculative changes or “while we’re here” edits.
+•All logic should be isolated to not break existing flows.
+
+4.Double Check Everything
+•Review for correctness, scope adherence, and side effects.
+•Ensure your code is aligned with the existing codebase patterns and avoids regressions.
+•Explicitly verify whether anything downstream will be impacted.
+
+5.Deliver Clearly
+•Summarize what was changed and why.
+•List every file modified and what was done in each.
+•If there are any assumptions or risks, flag them for review.
+
+Reminder: You are not a co-pilot, assistant, or brainstorm partner. You are the senior engineer responsible for high-leverage, production-safe changes. Do not improvise. Do not over-engineer. Do not deviate
+
+#####
+# .cursor Rule for Intelligent Business Analysis using Free-Tier LLMs Project
+
+This `.cursor` rule provides a comprehensive blueprint for the development of the 'Intelligent Business Analysis Using Free-Tier LLMs' project. It serves as your primary guide, outlining all functional and non-functional requirements, technical specifications, and development methodologies. Each section below contains detailed instructions and context necessary for successful execution and ensures adherence to the project's core objectives and the specified Streamlit Cloud environment.
+
+## Project Overview
+This project aims to develop and evaluate a comprehensive framework for comparing free-tier Large Language Models (LLMs) in business intelligence applications, specifically for the retail and finance industries. The system will provide evidence-based guidance for organizations selecting optimal free LLMs through systematic Retrieval-Augmented Generation (RAG)-enabled performance evaluation and blind user assessment. The project will incorporate both human-centric blind evaluations by external testers and automated technical performance evaluations. The entire application will be developed for and deployed on Streamlit Cloud.
+
+## Core Requirements & Constraints
+This section outlines the mandatory functional and non-functional requirements that define the scope and capabilities of the project. For each requirement, consider the necessary code modules and their integration points within the Streamlit application structure (e.g., `app.py`, `pages/`, `utils/`, `data/`).
+
+1.  **Deployment Environment**:
+    *Description: Specifies the target environment for the application and the fundamental principles for development to ensure compatibility and efficiency. Your code must be developed with Streamlit Cloud's operational constraints as the primary consideration, influencing module design and data handling strategies.*
+    * **Cloud-First Development Paradigm**: Development practices must prioritize Streamlit Cloud as the primary target environment. All code should be written with the explicit understanding that its primary execution environment will be Streamlit Cloud, not a local machine. Avoid introducing features or dependencies that might run on `localhost` but are problematic or behave differently on the cloud. Regular deployment and testing on Streamlit Cloud are mandatory throughout the development lifecycle to preempt compatibility issues.
+    * Strict use of `requirements.txt` for all Python dependencies.
+    * No reliance on persistent local file system storage for application data. Data persistence considerations should leverage Streamlit's session state for temporary data or appropriate cloud/file-based solutions compatible with Streamlit Cloud's ephemeral nature.
+    * Efficient resource utilization to remain within Streamlit Cloud's free tier limits.
+    * All necessary configurations, especially API keys for LLM providers, must be handled securely using **Streamlit secrets** or environment variables.
+
+2.  **LLM Evaluation Scope**:
+    *Description: Defines the specific Large Language Models, industries, and data sources that will be part of the evaluation study. Ensure robust API client integration for each specified provider.*
+    * **LLM Providers**: The project will integrate with and evaluate LLMs from **Groq**, **Google Gemini**, and **OpenRouter**.
+    * **Number of LLMs**: A total of **four (4) distinct free-tier LLMs** will be selected from the aforementioned providers for rigorous evaluation. The specific models will be identified based on their free-tier availability and suitability for business analysis tasks.
+    * **Industries**: The evaluation will be exclusively focused on **Retail** and **Finance** business contexts.
+    * **Datasets**: Industry-specific datasets will be provided separately. The application must include functionality to ingest, process, and effectively utilize these datasets as the knowledge base for the RAG system. These datasets will typically be part of the deployed application's static files (within the repository) or loaded from an accessible external cloud source.
+
+3.  **Retrieval-Augmented Generation (RAG) Implementation**:
+    *Description: Details the technical requirements for building the RAG pipeline that grounds LLM responses in factual data. Develop modular components for data processing and retrieval, potentially in a `utils/rag_pipeline.py`.*
+    * **Coverage Target**: The RAG mechanism must be designed to ensure that approximately **70% of the information** used by the LLMs to generate answers to business analysis questions is derived from the provided datasets via retrieval. This implies a strong emphasis on grounding LLM responses in the given context.
+    * **RAG Pipeline**: A robust RAG pipeline must be developed, encompassing:
+        * **Data Ingestion**: Efficient parsing and loading of various document formats (e.g., CSV, text) into an organized structure.
+        * **Text Chunking**: Strategies for dividing large documents into manageable chunks suitable for retrieval.
+        * **Embeddings**: Generation of vector embeddings for document chunks.
+        * **Vector Database**: Integration with a lightweight, embeddable vector database (e.g., ChromaDB in client-only mode, FAISS, or similar in-memory/file-based solutions) that is compatible with Streamlit Cloud.
+        * **Retrieval**: Effective mechanisms for retrieving relevant document chunks based on user queries.
+        * **Prompt Engineering**: Strategic construction of prompts to provide retrieved context to the LLMs for grounded answer generation.
+
+4.  **Blind Evaluation System (Streamlit Application)**:
+    *Description: Specifies the design and functionality of the interactive system for human evaluators to assess LLM performance blindly. Focus on creating a secure, intuitive interface for external testers. The main evaluation logic will reside, for example, in `pages/blind_evaluation.py`.*
+    * **User Interface**: Develop a user-friendly and intuitive Streamlit application for conducting the blind evaluation sessions. Before beginning the evaluation, external testers will be required to provide their **actual email and name** through dedicated input fields.
+    * **User Consent**: External testers must explicitly **agree or consent to participate** in the evaluation through a clear opt-in mechanism (e.g., a checkbox) presented on the evaluation page before proceeding. This consent, along with the timestamp, will be recorded. **Crucially, the system will validate that the provided email address has not been previously registered. Only one evaluation per unique email address will be permitted to ensure data integrity and prevent multiple submissions from the same tester.**
+    * **Pre-defined Evaluation Scenarios & Pregenerated Responses**: Instead of live user input, the system will present a set of **pre-defined business analysis questions**. For each question, **pregenerated answers from the four RAG-enabled LLMs** will be loaded and presented for evaluation. This ensures uniformity across evaluations.
+    * **Anonymity**: Crucially, the system must completely **obscure the identity of the LLM** generating each response during the user evaluation phase. Responses from different LLMs for the same question will be presented randomly or in a shuffled order.
+    * **User Feedback Collection**: Implement clear mechanisms for external testers to provide feedback on the quality, relevance, accuracy, and **uniformity** of each presented response. This feedback will be **linked to their registered name and email** for analytical purposes. This should include quantitative metrics (e.g., rating scales, Likert scales) and qualitative comments. The system must facilitate the structured collection of these ratings from external evaluators who will be blind to the LLM source.
+    * **Data Collection & Storage (Human Evaluations)**: All evaluation data, including **registered tester name, email, consent status,** user questions, pregenerated LLM responses, user ratings, qualitative comments, timestamps, and LLM identifiers (for post-analysis only, not during blind evaluation), must be securely collected and stored. Preference for formats like CSV or JSON files that can be easily managed within Streamlit Cloud's file system or integrated with a persistent storage solution if necessary. For long-term persistence, data must be written to an external cloud storage solution.
+
+5.  **Automated Technical Performance Evaluation**:
+    *Description: Defines the requirements for an automated system to gather objective performance metrics of the LLMs through continuous batch processing. This component will likely run as an independent script (e.g., `batch_evaluator.py`) outside the Streamlit app.*
+    * **Purpose**: Implement an automated system to conduct regular, batch-based technical evaluations of the four selected LLMs. This will gather objective performance metrics independent of human feedback.
+    * **Metrics Collected**: The system must systematically collect essential technical performance indicators, including but not limited to:
+        * **Latency**: Response time of LLMs to queries.
+        * **Speed/Throughput**: Tokens per second or total tokens generated per unit of time.
+        * **API Success/Failure Rates**: Reliability of LLM API calls.
+        * Other necessary computational metrics that inform LLM efficiency.
+    * **Frequency & Duration**: The batch evaluations are designed to run **14 times within each 12-hour period**, for a **total duration of 4 consecutive days**. This demands an efficient and resilient automated execution process.
+    * **Methodology**: This involves sending a consistent set of predefined queries (through the RAG pipeline) to each LLM and programmatically measuring the specified metrics for each interaction. The queries used for automated evaluation may be a subset or derived from the questions used in human evaluations.
+    * **Data Storage for Metrics**: The collected technical performance data must be stored in a structured, machine-readable, and accessible format (e.g., CSV, JSON, or a lightweight persistent database file) for later analysis.
+    * **Architectural Consideration for Execution & Data Transfer**: The execution of these batch evaluations *can* be performed by a **separate, independent script running locally** (e.g., on a developer's machine) or in an external cloud environment. Due to the ephemeral nature of Streamlit Cloud containers, any data collected by this batch process *must* be stored in a **persistent external cloud storage solution** (e.g., Google Cloud Storage, Google Drive, Azure Blob Storage, AWS S3) that the Streamlit application can then read from. The Streamlit app will primarily serve as the interface for displaying the results collected and persisted by this external batch process.
+    * **Daily Update Mechanism**: The results generated by the local batch evaluation will be **transferred and saved to the persistent external cloud storage** at the end of each day (or after each batch completion). The Streamlit app will then retrieve these updated results for display on the Analysis Page.
+
+6.  **Access Control**:
+    *Description: Establishes the authentication and authorization rules for different user roles within the application to ensure data security and proper access segregation. This logic will be implemented, for example, within `utils/auth.py` and applied in relevant Streamlit pages.*
+    * **For External Testers (Blind Evaluation Page)**: Implement a lightweight, secure authentication gate (e.g., a shared passphrase/token, stored in Streamlit secrets) to restrict access to the "Blind Evaluation" page. This ensures only authorized external testers can access and submit evaluations.
+    * **For Administrators (Analysis and Administrative Pages)**: Implement a separate, distinct authentication mechanism (e.g., a specific administrator password or a unique admin token, also stored securely in Streamlit secrets) to grant access to the "Analysis Page" and any other future administrative or configuration sections of the application. These pages must remain inaccessible to unauthenticated users and external testers, ensuring data security and proper segregation of duties.
+
+## Technical Guidelines
+This section outlines the mandatory technologies, coding standards, and best practices to be followed during the development of the project, ensuring code quality, security, and maintainability across all modules.
+
+* **Programming Language**: Python 3.9+.
+* **Main Framework**: Streamlit for all user interface components and application logic.
+* **LLM Integration**: Utilize official Python SDKs or well-maintained libraries (e.g., `litellm` for unified API access) for interacting with Groq, Google Gemini, and OpenRouter APIs. Adhere strictly to the rate limits and terms of service for free-tier usage.
+* **Vector Database**: Choose a vector database solution that is lightweight, embeddable, and performs well within the Streamlit Cloud environment's resource constraints.
+* **Dependencies**: Maintain a lean and well-documented `requirements.txt` file.
+* **Code Quality**: Promote modular, well-commented, and maintainable code with clear function/class responsibilities.
+* **Error Handling**: Implement robust error handling mechanisms for all external API calls, data processing, and user interactions to ensure application stability.
+* **Security**: All sensitive information (e.g., API keys) must be handled securely, preferably using Streamlit secrets management. Do not hardcode credentials. Strict adherence to data privacy principles is paramount when handling Personal Identifiable Information (PII) such as tester names and emails. Ensure data is stored and processed securely, used only for the stated purpose of evaluation, and managed in compliance with relevant data protection considerations.
+* **Automated Job Execution**: If the batch evaluation component runs externally to the Streamlit app (due to Streamlit Cloud limitations), the **execution strategy must be clearly defined**. This includes considering options such as a dedicated cloud function (e.g., Google Cloud Functions), a scheduled task on a separate virtual machine, or an external scheduler. The chosen method must ensure reliable and consistent execution of the batch evaluations according to the specified frequency and duration.
+* **Testing**: Implement unit tests for critical components (e.g., RAG pipeline, LLM integration, authentication) where feasible.
+
+## Development Workflow Guidance
+This section provides instructions and priorities for the development team to ensure efficient progress, adherence to project goals, and alignment with the Cloud-First paradigm.
+
+* Prioritize the implementation of core functionalities (LLM integration, RAG pipeline, blind evaluation mechanism for data collection, and basic analysis display) before focusing on UI polish or advanced analysis features.
+* Develop and thoroughly test individual components, but always with Streamlit Cloud's operational environment in mind.
+* Regularly push updates to a repository connected to Streamlit Cloud to identify and address any deployment or compatibility issues early. This includes frequent, small deployments to confirm cloud behavior.
+* Develop the automated batch evaluation component concurrently with the main Streamlit application.
+* Crucially, design the batch evaluation component with its distinct execution environment in mind, ensuring its output (technical metrics data) can be seamlessly integrated into the Streamlit analysis page for display and further analysis.
+* Iterate on the RAG implementation to optimize for the 70% coverage goal and ensure retrieved contexts are genuinely relevant.
+* Focus on delivering a functional Minimum Viable Product (MVP) that meets all core requirements, then enhance iteratively.
+```

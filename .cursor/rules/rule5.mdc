@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+---
+description: /rag pipeline|rag_pipeline\.py|retrieval|embedding/i
+#####
+
+Title: RAG Pipeline Rule — Grounded Response Infrastructure
+
+Applies to: All Retrieval-Augmented Generation Tasks
+
+Rule:
+You are developing or modifying the **Retrieval-Augmented Generation (RAG)** system. This must produce grounded, explainable inputs to LLMs using only the provided datasets.
+
+1. Modular RAG Design  
+• Maintain strict separation of concerns:  
+ – Data ingestion (loaders, format handlers)  
+ – Chunking (adjustable granularity)  
+ – Embedding (model config, batch logic)  
+ – Storage (vector DB interface)  
+ – Retrieval (query-to-context logic)
+
+2. Streamlit-Compatible Storage  
+• All vector DBs must be embeddable and local-file-based (e.g., Chroma in client-only mode, FAISS, etc.).  
+• Avoid remote or server-based vector stores.  
+• Do not persist data outside of `st.session_state` or in app memory unless instructed.
+
+3. Embedding Consistency  
+• Use a single, project-wide embedding model with version locking.  
+• Store metadata with embeddings (e.g., chunk ID, doc source).  
+• Allow for vector regeneration if underlying source changes.
+
+4. Retrieval Logic  
+• Must return a configurable number of top-k relevant chunks.  
+• Retrieval must be fast (<200ms where possible).  
+• Must pass context + metadata into LLM prompt templates.
+
+5. Prompt Construction  
+• Prompt engineering must be modular (can reside in `utils/prompts.py`).  
+• Context and question must be inserted deterministically and clearly.  
+• Avoid chain-of-thought, fuzzy logic, or ungrounded rephrasing unless specified.
+
+This pipeline defines the integrity of the LLMs' responses. Accuracy and reproducibility are mandatory.
+
+#####

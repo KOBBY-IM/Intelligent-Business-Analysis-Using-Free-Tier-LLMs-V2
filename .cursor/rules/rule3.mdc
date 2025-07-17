@@ -1,0 +1,39 @@
+---
+alwaysApply: false
+---
+description: /batch evaluation|batch_evaluator\.py|automated metrics/i
+#####
+
+Title: Batch Evaluator Rule — LLM Metrics Collection Script
+
+Applies to: Automated Evaluation System Tasks
+
+Rule:
+You are modifying or implementing the **automated performance evaluation system** that runs independently of the Streamlit app. This script is a production artifact and must meet the following requirements:
+
+1. External, Automated, Deterministic  
+• Must be runnable via a single script entry point (e.g., `python batch_evaluator.py`).  
+• Do not require manual inputs or runtime decisions.  
+• Must run headlessly and repeatedly on a scheduler.
+
+2. Query & Measure Uniformity  
+• Use the same (or subset) of queries as the blind evaluation system.  
+• Always send the same payloads to each LLM for fair comparison.  
+• Collect latency, tokens/sec, failure rates, and retries (if applicable).
+
+3. Metrics Output  
+• Write clean, machine-readable output (CSV or JSON) per evaluation batch.  
+• Each record must include timestamp, model name, query ID, and all metrics.
+
+4. Cloud Transfer Required  
+• Must upload final result files daily to a persistent cloud bucket (e.g., Google Drive, S3, or GCS).  
+• Do not rely on local persistence or temporary cache files.
+
+5. Fail-Safe Design  
+• Implement retries for API failures.  
+• Fail gracefully and log issues to a local or cloud-accessible log file.  
+• Avoid noisy or excessive logging.
+
+This script is not a prototype. It must be robust, reproducible, and lightweight.
+
+#####
