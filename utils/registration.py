@@ -15,6 +15,8 @@ import hashlib
 from datetime import datetime
 from typing import Dict, Optional, List, Tuple
 import logging
+import os
+REGISTRATION_FILE = os.path.join('data', 'registrations.json')
 
 # Email validation regex pattern
 EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
@@ -99,21 +101,74 @@ def get_registration_storage_key() -> str:
     """
     return "tester_registrations"
 
+def load_registrations_from_file() -> Dict[str, Dict]:
+    """Load registrations from persistent file."""
+    if not os.path.exists(REGISTRATION_FILE):
+        return {}
+    try:
+        with open(REGISTRATION_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+            return {}
+    except Exception:
+        return {}
+
+def save_registrations_to_file(registrations: Dict[str, Dict]):
+    """Save registrations to persistent file."""
+    os.makedirs(os.path.dirname(REGISTRATION_FILE), exist_ok=True)
+    with open(REGISTRATION_FILE, 'w', encoding='utf-8') as f:
+        json.dump(registrations, f, indent=2)
+
 def get_registered_emails() -> List[str]:
     """
-    Get list of already registered email addresses.
-    
-    Returns:
-        List of registered email addresses (normalized to lowercase)
+    Get list of already registered email addresses from both session and file.
     """
     storage_key = get_registration_storage_key()
     
-    # For now, use session state (will be replaced with external storage in Phase 7)
+    # Get emails from session state
     if storage_key not in st.session_state:
         st.session_state[storage_key] = {}
     
-    registrations = st.session_state[storage_key]
-    return [email.lower() for email in registrations.keys()]
+    session_emails = [email.lower() for email in st.session_state[storage_key].keys()]
+    
+    # Get emails from file
+    file_regs = load_registrations_from_file()
+    file_emails = [email.lower() for email in file_regs.keys()]
+    
+    # Combine both sources
+    all_emails = set(session_emails + file_emails)
+    return list(all_emails)
+
+def store_registration(registration_record: Dict) -> bool:
+    """
+    Store a registration record securely in both session and file.
+    """
+    try:
+        storage_key = get_registration_storage_key()
+        email = registration_record["email"]
+        
+        # Initialize storage if needed
+        if storage_key not in st.session_state:
+            st.session_state[storage_key] = {}
+        
+        # Store in session state
+        st.session_state[storage_key][email] = registration_record
+        
+        # Also update file
+        regs = load_registrations_from_file()
+        regs[email] = registration_record
+        save_registrations_to_file(regs)
+        
+        # Log successful registration (without exposing PII)
+        email_hash = hash_email_for_logging(email)
+        logging.info(f"Registration stored for email hash: {email_hash}")
+        
+        return True
+        
+    except Exception as e:
+        logging.error(f"Failed to store registration: {str(e)}")
+        return False
 
 def is_email_already_registered(email: str) -> bool:
     """
@@ -173,36 +228,7 @@ def create_registration_record(name: str, email: str, consent_given: bool) -> Di
         "session_id": st.session_state.get("user_role", "unknown")
     }
 
-def store_registration(registration_record: Dict) -> bool:
-    """
-    Store a registration record securely.
-    
-    Args:
-        registration_record: Complete registration record
-    
-    Returns:
-        True if storage successful, False otherwise
-    """
-    try:
-        storage_key = get_registration_storage_key()
-        email = registration_record["email"]
-        
-        # Initialize storage if needed
-        if storage_key not in st.session_state:
-            st.session_state[storage_key] = {}
-        
-        # Store the registration
-        st.session_state[storage_key][email] = registration_record
-        
-        # Log successful registration (without exposing PII)
-        email_hash = hash_email_for_logging(email)
-        logging.info(f"Registration stored for email hash: {email_hash}")
-        
-        return True
-        
-    except Exception as e:
-        logging.error(f"Failed to store registration: {str(e)}")
-        return False
+
 
 def get_registration_by_email(email: str) -> Optional[Dict]:
     """

@@ -19,10 +19,15 @@ class VectorDB:
             persist_path: Optional path for persistence
         """
         self.persist_path = persist_path
-        self.client = chromadb.Client(Settings(
-            persist_directory=persist_path if persist_path else None,
-            is_persistent=bool(persist_path)
-        ))
+        if persist_path:
+            self.client = chromadb.Client(Settings(
+                persist_directory=persist_path,
+                is_persistent=True
+            ))
+        else:
+            self.client = chromadb.Client(Settings(
+                is_persistent=False
+            ))
         self.collection = self.client.create_collection("rag_collection")
 
     def add_documents(self, embeddings: List[list], metadatas: List[dict]):
