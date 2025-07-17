@@ -188,6 +188,61 @@ def is_email_already_registered(email: str) -> bool:
     
     return email_normalized in registered_emails
 
+def has_email_completed_evaluation(email: str) -> bool:
+    """
+    Check if an email address has completed an evaluation.
+    
+    Args:
+        email: Email address to check
+    
+    Returns:
+        True if email has completed evaluation, False otherwise
+    """
+    if not email:
+        return False
+    
+    email_normalized = email.strip().lower()
+    
+    # Check session state
+    storage_key = get_registration_storage_key()
+    if storage_key in st.session_state:
+        session_reg = st.session_state[storage_key].get(email_normalized)
+        if session_reg and session_reg.get("evaluation_completed", False):
+            return True
+    
+    # Check file storage
+    file_regs = load_registrations_from_file()
+    file_reg = file_regs.get(email_normalized)
+    if file_reg and file_reg.get("evaluation_completed", False):
+        return True
+    
+    return False
+
+def can_email_register(email: str) -> Tuple[bool, str]:
+    """
+    Check if an email can register for evaluation.
+    
+    Args:
+        email: Email address to check
+    
+    Returns:
+        Tuple of (can_register, reason)
+    """
+    if not email:
+        return False, "Email is required"
+    
+    email_normalized = email.strip().lower()
+    
+    # Check if email has completed evaluation
+    if has_email_completed_evaluation(email_normalized):
+        return False, "This email address has already completed an evaluation. Only one evaluation per email is permitted."
+    
+    # Check if email is already registered but hasn't completed
+    if is_email_already_registered(email_normalized):
+        return True, "Email already registered but evaluation not completed. You can continue with your evaluation."
+    
+    return True, "Email can register for new evaluation."
+
 def hash_email_for_logging(email: str) -> str:
     """
     Create a hash of email for secure logging purposes.
@@ -246,11 +301,18 @@ def get_registration_by_email(email: str) -> Optional[Dict]:
     email_normalized = email.strip().lower()
     storage_key = get_registration_storage_key()
     
-    if storage_key not in st.session_state:
-        return None
+    # Check session state first
+    if storage_key in st.session_state:
+        registrations = st.session_state[storage_key]
+        if email_normalized in registrations:
+            return registrations[email_normalized]
     
-    registrations = st.session_state[storage_key]
-    return registrations.get(email_normalized)
+    # Check file storage
+    file_regs = load_registrations_from_file()
+    if email_normalized in file_regs:
+        return file_regs[email_normalized]
+    
+    return None
 
 def get_registration_stats() -> Dict:
     """
@@ -352,8 +414,21 @@ def show_registration_form() -> Tuple[bool, Optional[Dict]]:
                 errors.append("Email is required")
             elif not validate_email_format(email):
                 errors.append("Please enter a valid email address")
-            elif is_email_already_registered(email):
-                errors.append("This email address is already registered. Only one evaluation per email is permitted.")
+            else:
+                # Check if email can register
+                can_register, reason = can_email_register(email)
+                if not can_register:
+                    errors.append(reason)
+                elif is_email_already_registered(email):
+                    # Email is already registered but hasn't completed evaluation
+                    st.info(f"ℹ️ {reason}")
+                    # Allow them to continue with existing registration
+                    existing_reg = get_registration_by_email(email)
+                    if existing_reg:
+                        st.session_state["tester_registered"] = True
+                        st.session_state["tester_registration"] = existing_reg
+                        st.success("✅ Welcome back! You can continue with your evaluation.")
+                        return True, existing_reg
             
             if not consent_given:
                 errors.append("You must provide explicit consent to participate")
