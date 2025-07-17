@@ -131,19 +131,52 @@ def show_system_status():
     # Check Streamlit version
     st.success(f"✅ Streamlit Version: {st.__version__}")
     
-    # Check secrets configuration (placeholder)
+    # Enhanced secrets configuration check
     st.subheader("🔐 Secrets Configuration")
     if hasattr(st, 'secrets'):
-        st.info("🔧 Secrets management is available and ready for API key configuration")
+        st.success("✅ Secrets management is available")
+        
+        # Debug: Check specific secrets (without exposing values)
+        try:
+            # Check if auth section exists
+            if hasattr(st.secrets, 'auth'):
+                st.success("✅ Auth section found in secrets")
+                
+                # Check individual auth secrets
+                if hasattr(st.secrets.auth, 'admin_password'):
+                    st.success("✅ Admin password configured")
+                else:
+                    st.error("❌ Admin password NOT configured in secrets")
+                
+                if hasattr(st.secrets.auth, 'tester_access_token'):
+                    st.success("✅ Tester access token configured")
+                else:
+                    st.error("❌ Tester access token NOT configured in secrets")
+            else:
+                st.error("❌ Auth section NOT found in secrets")
+                st.markdown("**You need to configure secrets in Streamlit Cloud dashboard**")
+        except Exception as e:
+            st.error(f"❌ Error checking secrets: {str(e)}")
+            
+        # Show available secret sections for debugging
+        try:
+            available_sections = list(st.secrets.keys()) if hasattr(st.secrets, 'keys') else []
+            if available_sections:
+                st.info(f"📋 Available secret sections: {', '.join(available_sections)}")
+            else:
+                st.warning("⚠️ No secret sections found")
+        except:
+            st.warning("⚠️ Cannot enumerate secret sections")
     else:
-        st.warning("⚠️ Secrets management not detected")
+        st.error("❌ Secrets management not available")
     
     # Deployment environment check
     st.subheader("☁️ Deployment Environment")
     if os.getenv('STREAMLIT_SHARING_MODE'):
         st.success("✅ Running on Streamlit Cloud")
+        st.info("💡 Configure secrets in the Streamlit Cloud dashboard")
     else:
-        st.info("🏠 Running locally - Deploy to Streamlit Cloud for production")
+        st.info("🏠 Running locally - secrets loaded from .streamlit/secrets.toml")
     
     # Future API integration status (placeholder)
     st.subheader("🤖 LLM API Status")
