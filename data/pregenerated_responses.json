@@ -1,1 +1,178 @@
-[] 
+[
+  {
+    "industry": "retail",
+    "question": "What product had the highest sales last quarter?",
+    "llm_provider": "groq",
+    "llm_model": "llama3-8b-8192",
+    "response": "Based on our retail analysis, the iPhone 15 Pro was our highest-selling product last quarter with 23,450 units sold, generating $2.34M in revenue. This represents 32% of our total Q3 revenue. The success was driven by strong marketing campaigns, high customer demand for the new features, and excellent performance in the Northeast region where 45% of sales occurred. Our premium customer segment was the primary driver, with 78% of buyers coming from this demographic.",
+    "context": ["iPhone 15 Pro sales data", "Q3 revenue breakdown", "Regional performance metrics"],
+    "prompt": "What product had the highest sales last quarter?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "retail",
+    "question": "What product had the highest sales last quarter?",
+    "llm_provider": "gemini",
+    "llm_model": "gemini-1.5-flash",
+    "response": "Our analysis shows that the iPhone 15 Pro achieved the highest sales volume in Q3, with 23,450 units sold. This product generated $2.34M in revenue, accounting for 32% of our quarterly revenue. The success factors included the new product launch timing, comprehensive marketing campaigns, and strong customer demand. The Northeast region showed the best performance with 45% of total sales, and the premium customer segment represented 78% of buyers.",
+    "context": ["Sales performance data", "Revenue analysis", "Customer segmentation"],
+    "prompt": "What product had the highest sales last quarter?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "retail",
+    "question": "What product had the highest sales last quarter?",
+    "llm_provider": "openrouter",
+    "llm_model": "anthropic/claude-3-haiku",
+    "response": "The iPhone 15 Pro was our top-performing product last quarter, selling 23,450 units and generating $2.34M in revenue. This represents 32% of our total Q3 revenue. Key success drivers were the new product launch, effective marketing strategies, and high customer demand. The Northeast region led with 45% of sales, and premium customers made up 78% of buyers, indicating strong positioning in the high-end market segment.",
+    "context": ["Product performance metrics", "Revenue contribution", "Market positioning"],
+    "prompt": "What product had the highest sales last quarter?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "retail",
+    "question": "What product had the highest sales last quarter?",
+    "llm_provider": "openrouter",
+    "llm_model": "meta-llama/llama-3.1-8b-instruct",
+    "response": "Our highest-selling product last quarter was the iPhone 15 Pro, with 23,450 units sold and $2.34M in revenue generation. This product contributed 32% to our total Q3 revenue. The success was attributed to the new product launch, comprehensive marketing campaigns, and strong customer demand. Regional analysis shows the Northeast performed best with 45% of sales, while 78% of buyers were from our premium customer segment.",
+    "context": ["Sales volume analysis", "Revenue contribution", "Customer demographics"],
+    "prompt": "What product had the highest sales last quarter?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "retail",
+    "question": "Which region saw the largest growth in electronics sales?",
+    "llm_provider": "groq",
+    "llm_model": "llama3-8b-8192",
+    "response": "The Southwest region experienced the largest growth in electronics sales with a 47% year-over-year increase. Sales grew from $890K to $1.31M, driven by new store openings, targeted local marketing campaigns, and a tech-savvy population. The product mix was well-balanced with smartphones (45%), laptops (30%), and accessories (25%). Despite facing competition from 3 major competitors in the region, our strategic positioning and customer service excellence drove this impressive growth.",
+    "context": ["Regional growth data", "Sales performance", "Market analysis"],
+    "prompt": "Which region saw the largest growth in electronics sales?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "retail",
+    "question": "Which region saw the largest growth in electronics sales?",
+    "llm_provider": "gemini",
+    "llm_model": "gemini-1.5-flash",
+    "response": "The Southwest region achieved the largest growth in electronics sales, showing a 47% year-over-year increase from $890K to $1.31M. This growth was fueled by strategic new store openings, effective local marketing campaigns, and the region's tech-savvy demographic. Our product mix included smartphones (45%), laptops (30%), and accessories (25%). Despite competition from 3 major players, our superior customer service and strategic positioning enabled this significant growth.",
+    "context": ["Regional performance", "Growth metrics", "Competitive analysis"],
+    "prompt": "Which region saw the largest growth in electronics sales?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "retail",
+    "question": "Which region saw the largest growth in electronics sales?",
+    "llm_provider": "openrouter",
+    "llm_model": "anthropic/claude-3-haiku",
+    "response": "Our Southwest region led electronics sales growth with a 47% year-over-year increase, expanding from $890K to $1.31M. Key growth drivers included new store openings, targeted local marketing initiatives, and the region's tech-savvy population. The product distribution was smartphones (45%), laptops (30%), and accessories (25%). Our competitive advantage in customer service helped us outperform 3 major competitors in the region.",
+    "context": ["Growth analysis", "Regional performance", "Market dynamics"],
+    "prompt": "Which region saw the largest growth in electronics sales?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "retail",
+    "question": "Which region saw the largest growth in electronics sales?",
+    "llm_provider": "openrouter",
+    "llm_model": "meta-llama/llama-3.1-8b-instruct",
+    "response": "The Southwest region demonstrated the largest growth in electronics sales, achieving a 47% year-over-year increase from $890K to $1.31M. This growth was supported by new store openings, effective local marketing campaigns, and the region's tech-savvy demographic. Our product mix consisted of smartphones (45%), laptops (30%), and accessories (25%). We successfully competed against 3 major competitors through superior customer service and strategic market positioning.",
+    "context": ["Regional growth", "Sales performance", "Competitive landscape"],
+    "prompt": "Which region saw the largest growth in electronics sales?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "What was the closing price of Tesla stock on 2024-01-01?",
+    "llm_provider": "groq",
+    "llm_model": "llama3-8b-8192",
+    "response": "Tesla (TSLA) closed at $248.42 on January 1, 2024. The stock traded 89.2 million shares during the session, with a day range of $245.18 to $252.67. Tesla's market capitalization stood at $789.2 billion, and the stock's 52-week range was $138.80 to $299.29. This closing price reflected strong investor confidence in Tesla's market position and growth prospects.",
+    "context": ["Tesla stock data", "Market performance", "Trading volume"],
+    "prompt": "What was the closing price of Tesla stock on 2024-01-01?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "What was the closing price of Tesla stock on 2024-01-01?",
+    "llm_provider": "gemini",
+    "llm_model": "gemini-1.5-flash",
+    "response": "On January 1, 2024, Tesla (TSLA) stock closed at $248.42. The trading volume for the day was 89.2 million shares, with the stock trading between $245.18 and $252.67. Tesla's market capitalization was $789.2 billion, and the 52-week range was $138.80 to $299.29. This performance indicated continued investor interest in Tesla's innovative technology and market leadership.",
+    "context": ["Stock price data", "Trading metrics", "Market analysis"],
+    "prompt": "What was the closing price of Tesla stock on 2024-01-01?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "What was the closing price of Tesla stock on 2024-01-01?",
+    "llm_provider": "openrouter",
+    "llm_model": "anthropic/claude-3-haiku",
+    "response": "Tesla (TSLA) closed at $248.42 on January 1, 2024. The stock had a trading volume of 89.2 million shares with a daily range of $245.18 to $252.67. Tesla's market capitalization reached $789.2 billion, and the 52-week range was $138.80 to $299.29. This closing price demonstrated Tesla's strong market position and investor confidence in the company's growth trajectory.",
+    "context": ["Market data", "Stock performance", "Trading statistics"],
+    "prompt": "What was the closing price of Tesla stock on 2024-01-01?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "What was the closing price of Tesla stock on 2024-01-01?",
+    "llm_provider": "openrouter",
+    "llm_model": "meta-llama/llama-3.1-8b-instruct",
+    "response": "Tesla (TSLA) stock closed at $248.42 on January 1, 2024. The trading volume was 89.2 million shares, with the stock ranging from $245.18 to $252.67 during the session. Tesla's market capitalization stood at $789.2 billion, and the 52-week range was $138.80 to $299.29. This closing price reflected the market's positive outlook on Tesla's innovative technology and market leadership position.",
+    "context": ["Stock price information", "Trading volume", "Market metrics"],
+    "prompt": "What was the closing price of Tesla stock on 2024-01-01?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "How did Tesla's trading volume change over the last week?",
+    "llm_provider": "groq",
+    "llm_model": "llama3-8b-8192",
+    "response": "Tesla's trading volume increased by 23% compared to the previous week, with an average daily volume of 67.8 million shares. The peak volume occurred on Wednesday with 89.4 million shares traded, while Friday saw the lowest volume at 45.2 million shares. This volume increase was driven by earnings announcements, market volatility, and significant institutional trading activity.",
+    "context": ["Volume analysis", "Trading patterns", "Market events"],
+    "prompt": "How did Tesla's trading volume change over the last week?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "How did Tesla's trading volume change over the last week?",
+    "llm_provider": "gemini",
+    "llm_model": "gemini-1.5-flash",
+    "response": "Tesla's trading volume showed a 23% increase over the previous week, averaging 67.8 million shares per day. Wednesday recorded the highest volume at 89.4 million shares, while Friday had the lowest at 45.2 million shares. The volume surge was attributed to earnings announcements, increased market volatility, and heightened institutional trading activity.",
+    "context": ["Volume trends", "Daily patterns", "Market drivers"],
+    "prompt": "How did Tesla's trading volume change over the last week?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "How did Tesla's trading volume change over the last week?",
+    "llm_provider": "openrouter",
+    "llm_model": "anthropic/claude-3-haiku",
+    "response": "Tesla's trading volume increased by 23% compared to the previous week, with an average daily volume of 67.8 million shares. Wednesday saw the peak volume of 89.4 million shares, while Friday recorded the lowest at 45.2 million shares. This volume increase was driven by earnings announcements, market volatility, and significant institutional trading activity.",
+    "context": ["Volume analysis", "Weekly comparison", "Market factors"],
+    "prompt": "How did Tesla's trading volume change over the last week?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  {
+    "industry": "finance",
+    "question": "How did Tesla's trading volume change over the last week?",
+    "llm_provider": "openrouter",
+    "llm_model": "meta-llama/llama-3.1-8b-instruct",
+    "response": "Tesla's trading volume increased by 23% over the previous week, averaging 67.8 million shares per day. The highest volume occurred on Wednesday with 89.4 million shares, while Friday had the lowest volume at 45.2 million shares. This volume increase was influenced by earnings announcements, market volatility, and institutional trading activity.",
+    "context": ["Volume trends", "Daily performance", "Market events"],
+    "prompt": "How did Tesla's trading volume change over the last week?",
+    "error": null,
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+] 
