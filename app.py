@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from utils.auth import (
     get_current_user_role, 
+    get_current_user_email,
     enforce_page_access, 
     show_logout_button,
     show_tester_login,
@@ -24,8 +25,20 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+def init_session_state():
+    """Initialize session state with default values"""
+    # Initialize registration storage if not set
+    if "tester_registrations" not in st.session_state:
+        st.session_state["tester_registrations"] = {}
+    
+    # DO NOT initialize current_page here - let the navigation logic handle it
+    # This ensures user's page selection persists across refreshes
+
 def main():
     """Main application entry point"""
+    
+    # Initialize session state
+    init_session_state()
     
     # Header
     st.title("🤖 Intelligent Business Analysis Using Free-Tier LLMs")
@@ -52,7 +65,40 @@ def main():
     if not current_role:
         nav_options.extend(["Tester Login", "Admin Login"])
     
-    page = st.sidebar.selectbox("Select Page", nav_options)
+    # Determine default page based on user role and session state
+    current_page_in_session = st.session_state.get("current_page")
+    
+    if current_role == "tester":
+        # For testers, ensure they're not on login pages or invalid pages
+        if (not current_page_in_session or 
+            current_page_in_session in ["Tester Login", "Admin Login"] or 
+            current_page_in_session not in nav_options):
+            default_page = "Blind Evaluation"
+        else:
+            default_page = current_page_in_session
+    elif current_role == "admin":
+        # For admins, ensure they're not on login pages or invalid pages  
+        if (not current_page_in_session or 
+            current_page_in_session in ["Tester Login", "Admin Login"] or 
+            current_page_in_session not in nav_options):
+            default_page = "Analysis Dashboard"
+        else:
+            default_page = current_page_in_session
+    else:
+        # For unauthenticated users
+        if not current_page_in_session or current_page_in_session not in nav_options:
+            default_page = nav_options[0]  # Default to first available option
+        else:
+            default_page = current_page_in_session
+    
+    # Ensure the default page is in available options
+    if default_page not in nav_options:
+        default_page = nav_options[0]
+    
+    page = st.sidebar.selectbox("Select Page", nav_options, index=nav_options.index(default_page))
+    
+    # Store the current page selection in session state
+    st.session_state["current_page"] = page
     
     # Show logout button if authenticated
     show_logout_button()
@@ -191,6 +237,43 @@ def show_system_status():
     st.info("📋 LLM integrations will be configured in upcoming releases")
     
     # Memory and resource indicators
+    st.subheader("💾 Session State Status")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Authentication Status:**")
+        current_role = get_current_user_role()
+        current_email = get_current_user_email()
+        
+        if current_role:
+            st.success(f"✅ Logged in as: {current_role}")
+            if current_email:
+                st.info(f"📧 Email: {current_email}")
+        else:
+            st.info("ℹ️ Not authenticated")
+        
+        st.markdown("**Current Page:**")
+        current_page = st.session_state.get("current_page", "Not set")
+        st.info(f"📄 Page: {current_page}")
+    
+    with col2:
+        st.markdown("**Registration Data:**")
+        registrations = st.session_state.get("tester_registrations", {})
+        st.info(f"👥 Registered testers: {len(registrations)}")
+        
+        st.markdown("**Session Keys:**")
+        session_keys = list(st.session_state.keys())
+        st.info(f"🔑 Active session keys: {len(session_keys)}")
+        
+        # Show session persistence info
+        if st.checkbox("🔍 Show detailed session state", help="For debugging purposes"):
+            with st.expander("Session State Details"):
+                filtered_state = {k: v for k, v in st.session_state.items() 
+                                if not k.startswith('_') and k != 'tester_registrations'}
+                st.json(filtered_state)
+    
+    st.markdown("---")
     st.subheader("💾 Resource Status")
     st.info("📊 Resource monitoring will be implemented for production deployment")
 
@@ -205,6 +288,7 @@ def show_tester_login_page():
     - Your email will be recorded for research purposes
     - Only one evaluation per email address is permitted
     - Your responses will help improve AI system selection for businesses
+    - **After successful login, you'll be automatically redirected to the evaluation page**
     """)
     
     st.markdown("---")

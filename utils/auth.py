@@ -123,6 +123,10 @@ def clear_user_session():
     for key in ["tester_registered", "tester_registration"]:
         if key in st.session_state:
             del st.session_state[key]
+    
+    # Reset current page to default
+    if "current_page" in st.session_state:
+        del st.session_state["current_page"]
 
 def require_role(required_role: Role) -> bool:
     """
@@ -181,6 +185,8 @@ def show_tester_login() -> bool:
             
             if verify_tester_access(access_token):
                 set_user_session("tester", email)
+                # Set the current page to Blind Evaluation for testers
+                st.session_state["current_page"] = "Blind Evaluation"
                 st.success("✅ Access granted! Welcome to the evaluation system.")
                 st.rerun()
                 return True
@@ -217,6 +223,8 @@ def show_admin_login() -> bool:
             
             if verify_admin_access(password):
                 set_user_session("admin")
+                # Set the current page to Analysis Dashboard for admins
+                st.session_state["current_page"] = "Analysis Dashboard"
                 st.success("✅ Administrator access granted!")
                 st.rerun()
                 return True
