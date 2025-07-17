@@ -311,7 +311,6 @@ def show_admin_login_page():
 
 def show_blind_evaluation():
     """Display the blind evaluation page for authenticated testers"""
-    st.header("🎯 Blind LLM Evaluation")
     
     # Check if current tester is registered
     if not is_current_tester_registered():
@@ -335,6 +334,10 @@ def show_blind_evaluation():
     registration = get_current_tester_registration()
     
     if registration:
+        # Store tester info in session state for the evaluation page
+        st.session_state["tester_name"] = registration['name']
+        st.session_state["tester_email"] = registration['email']
+        
         # Welcome message with registration info
         st.success(f"Welcome back, {registration['name']}! Thank you for participating in our evaluation.")
         
@@ -348,48 +351,15 @@ def show_blind_evaluation():
                 st.write(f"**Consent Given:** {'✅ Yes' if registration['consent_given'] else '❌ No'}")
                 st.write(f"**Registered:** {registration['registration_timestamp'][:19].replace('T', ' ')}")
     
-    # Evaluation instructions
-    st.markdown("""
-    ### 📋 How the Evaluation Works
-    
-    1. **Anonymous Responses**: You'll see business analysis responses from 4 different LLMs
-    2. **Blind Testing**: LLM identities are completely hidden during evaluation
-    3. **Rate & Comment**: Provide ratings and qualitative feedback
-    4. **One Session**: Complete evaluation in a single session
-    
-    **Evaluation Criteria:**
-    - **Accuracy**: How correct and factual is the response?
-    - **Relevance**: How well does it address the business question?
-    - **Clarity**: How clear and understandable is the response?
-    - **Actionability**: How useful is this for business decision-making?
-    """)
-    
-    # Status indicator
-    st.info("🚧 **Evaluation Interface**: Will be implemented in the next development phase (LLM Integration)")
-    
-    # Placeholder for future evaluation interface
-    with st.expander("🔍 Preview: Future Evaluation Interface"):
-        st.markdown("""
-        **Question 1: Retail Sales Analysis**
-        
-        *"Analyze the quarterly sales data for our retail chain and recommend strategies to improve performance in underperforming regions."*
-        
-        **Response A:** [Anonymous LLM Response]  
-        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
-        Comments: [Your feedback here]
-        
-        **Response B:** [Anonymous LLM Response]  
-        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
-        Comments: [Your feedback here]
-        
-        **Response C:** [Anonymous LLM Response]  
-        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
-        Comments: [Your feedback here]
-        
-        **Response D:** [Anonymous LLM Response]  
-        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
-        Comments: [Your feedback here]
-        """)
+    # Import and run the blind evaluation page
+    try:
+        from pages.blind_evaluation import show_evaluation_interface
+        show_evaluation_interface()
+    except ImportError:
+        st.error("❌ Blind evaluation interface not available. Please contact the administrator.")
+    except Exception as e:
+        st.error(f"❌ Error loading evaluation interface: {str(e)}")
+        st.error(f"Debug: {type(e).__name__}: {str(e)}")
     
     # Debug: Clear registration button (for testing only - remove in production)
     if st.button("🔄 Reset Registration (Testing Only)", help="Clear current registration for testing"):
