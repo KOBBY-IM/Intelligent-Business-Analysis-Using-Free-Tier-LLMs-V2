@@ -89,3 +89,6 @@ dmypy.json
 
 #cursor
 .cursor/
+
+#streamlit
+.streamlit/secrets.toml

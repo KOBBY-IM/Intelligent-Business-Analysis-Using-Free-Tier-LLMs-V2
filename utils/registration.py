@@ -1,0 +1,386 @@
+"""
+Tester Registration and Consent Management Module
+
+This module handles:
+- External tester registration with email and name collection
+- Consent management with explicit opt-in requirements
+- Email uniqueness validation to prevent duplicate registrations
+- Secure PII handling and storage preparation
+"""
+
+import streamlit as st
+import re
+import json
+import hashlib
+from datetime import datetime
+from typing import Dict, Optional, List, Tuple
+import logging
+
+# Email validation regex pattern
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+class RegistrationError(Exception):
+    """Custom exception for registration-related errors"""
+    pass
+
+class ConsentError(Exception):
+    """Custom exception for consent-related errors"""
+    pass
+
+def validate_email_format(email: str) -> bool:
+    """
+    Validate email format using regex pattern.
+    
+    Args:
+        email: Email address to validate
+    
+    Returns:
+        True if email format is valid, False otherwise
+    """
+    if not email or not isinstance(email, str):
+        return False
+    
+    # Strip whitespace and convert to lowercase
+    email = email.strip().lower()
+    
+    # Check basic format
+    if not EMAIL_PATTERN.match(email):
+        return False
+    
+    # Additional checks
+    if len(email) > 254:  # RFC 5321 limit
+        return False
+    
+    if '..' in email:  # Consecutive dots not allowed
+        return False
+    
+    return True
+
+def validate_name_format(name: str) -> bool:
+    """
+    Validate name format for registration.
+    
+    Args:
+        name: Name to validate
+    
+    Returns:
+        True if name format is valid, False otherwise
+    """
+    if not name or not isinstance(name, str):
+        return False
+    
+    name = name.strip()
+    
+    # Basic requirements
+    if len(name) < 2:
+        return False
+    
+    if len(name) > 100:
+        return False
+    
+    # Must contain at least one letter
+    if not any(c.isalpha() for c in name):
+        return False
+    
+    # Check for reasonable characters (letters, spaces, hyphens, apostrophes)
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -'.")
+    if not all(c in allowed_chars for c in name):
+        return False
+    
+    return True
+
+def get_registration_storage_key() -> str:
+    """
+    Get the storage key for registration data.
+    For now uses session state, but prepared for external storage.
+    
+    Returns:
+        Storage key for registration data
+    """
+    return "tester_registrations"
+
+def get_registered_emails() -> List[str]:
+    """
+    Get list of already registered email addresses.
+    
+    Returns:
+        List of registered email addresses (normalized to lowercase)
+    """
+    storage_key = get_registration_storage_key()
+    
+    # For now, use session state (will be replaced with external storage in Phase 7)
+    if storage_key not in st.session_state:
+        st.session_state[storage_key] = {}
+    
+    registrations = st.session_state[storage_key]
+    return [email.lower() for email in registrations.keys()]
+
+def is_email_already_registered(email: str) -> bool:
+    """
+    Check if an email address is already registered.
+    
+    Args:
+        email: Email address to check
+    
+    Returns:
+        True if email is already registered, False otherwise
+    """
+    if not email:
+        return False
+    
+    email_normalized = email.strip().lower()
+    registered_emails = get_registered_emails()
+    
+    return email_normalized in registered_emails
+
+def hash_email_for_logging(email: str) -> str:
+    """
+    Create a hash of email for secure logging purposes.
+    
+    Args:
+        email: Email to hash
+    
+    Returns:
+        SHA-256 hash of email (first 8 characters for logging)
+    """
+    if not email:
+        return "NONE"
+    
+    email_hash = hashlib.sha256(email.encode()).hexdigest()
+    return email_hash[:8]  # First 8 characters for logging
+
+def create_registration_record(name: str, email: str, consent_given: bool) -> Dict:
+    """
+    Create a registration record with all required data.
+    
+    Args:
+        name: Tester's name
+        email: Tester's email
+        consent_given: Whether consent was explicitly given
+    
+    Returns:
+        Dictionary containing registration record
+    """
+    timestamp = datetime.utcnow().isoformat()
+    
+    return {
+        "name": name.strip(),
+        "email": email.strip().lower(),
+        "consent_given": consent_given,
+        "consent_timestamp": timestamp,
+        "registration_timestamp": timestamp,
+        "evaluation_completed": False,
+        "session_id": st.session_state.get("user_role", "unknown")
+    }
+
+def store_registration(registration_record: Dict) -> bool:
+    """
+    Store a registration record securely.
+    
+    Args:
+        registration_record: Complete registration record
+    
+    Returns:
+        True if storage successful, False otherwise
+    """
+    try:
+        storage_key = get_registration_storage_key()
+        email = registration_record["email"]
+        
+        # Initialize storage if needed
+        if storage_key not in st.session_state:
+            st.session_state[storage_key] = {}
+        
+        # Store the registration
+        st.session_state[storage_key][email] = registration_record
+        
+        # Log successful registration (without exposing PII)
+        email_hash = hash_email_for_logging(email)
+        logging.info(f"Registration stored for email hash: {email_hash}")
+        
+        return True
+        
+    except Exception as e:
+        logging.error(f"Failed to store registration: {str(e)}")
+        return False
+
+def get_registration_by_email(email: str) -> Optional[Dict]:
+    """
+    Retrieve registration record by email.
+    
+    Args:
+        email: Email address to look up
+    
+    Returns:
+        Registration record if found, None otherwise
+    """
+    if not email:
+        return None
+    
+    email_normalized = email.strip().lower()
+    storage_key = get_registration_storage_key()
+    
+    if storage_key not in st.session_state:
+        return None
+    
+    registrations = st.session_state[storage_key]
+    return registrations.get(email_normalized)
+
+def get_registration_stats() -> Dict:
+    """
+    Get statistics about registrations.
+    
+    Returns:
+        Dictionary with registration statistics
+    """
+    storage_key = get_registration_storage_key()
+    
+    if storage_key not in st.session_state:
+        return {
+            "total_registrations": 0,
+            "consented_registrations": 0,
+            "completed_evaluations": 0
+        }
+    
+    registrations = st.session_state[storage_key]
+    
+    total = len(registrations)
+    consented = sum(1 for reg in registrations.values() if reg.get("consent_given", False))
+    completed = sum(1 for reg in registrations.values() if reg.get("evaluation_completed", False))
+    
+    return {
+        "total_registrations": total,
+        "consented_registrations": consented,
+        "completed_evaluations": completed
+    }
+
+def show_registration_form() -> Tuple[bool, Optional[Dict]]:
+    """
+    Display the tester registration form and handle submission.
+    
+    Returns:
+        Tuple of (success, registration_record)
+    """
+    st.subheader("📝 Tester Registration")
+    st.markdown("""
+    Before participating in the evaluation, please provide your information and consent.
+    
+    **Your Privacy**: Your name and email will be securely stored and used solely for research purposes. 
+    Only one evaluation per email address is permitted to ensure data integrity.
+    """)
+    
+    with st.form("tester_registration_form"):
+        # Name input
+        name = st.text_input(
+            "Full Name *",
+            placeholder="Enter your full name",
+            help="Your real name for research attribution"
+        )
+        
+        # Email input
+        email = st.text_input(
+            "Email Address *",
+            placeholder="Enter your email address",
+            help="Must be a valid email address. Only one evaluation per email is allowed."
+        )
+        
+        # Consent section
+        st.markdown("### 📋 Consent to Participate")
+        st.markdown("""
+        **Research Purpose**: This evaluation compares the performance of different AI language models 
+        for business analysis tasks in retail and finance industries.
+        
+        **Your Participation**: You will evaluate responses from 4 different AI models without knowing 
+        which model generated each response.
+        
+        **Data Use**: Your ratings, comments, name, and email will be collected and analyzed for 
+        research purposes. Data will be stored securely and used only for this academic study.
+        
+        **Rights**: You may withdraw from the study at any time. Your participation is voluntary.
+        """)
+        
+        # Explicit consent checkbox
+        consent_given = st.checkbox(
+            "**I consent to participate in this research study**",
+            help="You must provide explicit consent to participate"
+        )
+        
+        # Additional confirmations
+        email_confirmation = st.checkbox(
+            "I confirm this is my actual email address and I understand only one evaluation per email is permitted"
+        )
+        
+        # Submit button
+        submitted = st.form_submit_button("Complete Registration", type="primary")
+        
+        if submitted:
+            # Validation
+            errors = []
+            
+            if not name:
+                errors.append("Name is required")
+            elif not validate_name_format(name):
+                errors.append("Please enter a valid name (2-100 characters, letters and common punctuation only)")
+            
+            if not email:
+                errors.append("Email is required")
+            elif not validate_email_format(email):
+                errors.append("Please enter a valid email address")
+            elif is_email_already_registered(email):
+                errors.append("This email address is already registered. Only one evaluation per email is permitted.")
+            
+            if not consent_given:
+                errors.append("You must provide explicit consent to participate")
+            
+            if not email_confirmation:
+                errors.append("You must confirm your email address")
+            
+            # Display errors if any
+            if errors:
+                for error in errors:
+                    st.error(f"❌ {error}")
+                return False, None
+            
+            # Create registration record
+            registration_record = create_registration_record(name, email, consent_given)
+            
+            # Store registration
+            if store_registration(registration_record):
+                st.success("✅ Registration completed successfully!")
+                st.balloons()
+                
+                # Update session with registration info
+                st.session_state["tester_registered"] = True
+                st.session_state["tester_registration"] = registration_record
+                
+                return True, registration_record
+            else:
+                st.error("❌ Failed to complete registration. Please try again.")
+                return False, None
+    
+    return False, None
+
+def is_current_tester_registered() -> bool:
+    """
+    Check if the current tester is registered for evaluation.
+    
+    Returns:
+        True if current tester is registered, False otherwise
+    """
+    return st.session_state.get("tester_registered", False)
+
+def get_current_tester_registration() -> Optional[Dict]:
+    """
+    Get registration record for current tester.
+    
+    Returns:
+        Registration record if available, None otherwise
+    """
+    return st.session_state.get("tester_registration")
+
+def clear_current_registration():
+    """Clear current tester registration from session."""
+    if "tester_registered" in st.session_state:
+        del st.session_state["tester_registered"]
+    if "tester_registration" in st.session_state:
+        del st.session_state["tester_registration"] 

@@ -1,11 +1,19 @@
 import streamlit as st
 import os
+from datetime import datetime
 from utils.auth import (
     get_current_user_role, 
     enforce_page_access, 
     show_logout_button,
     show_tester_login,
     show_admin_login
+)
+from utils.registration import (
+    show_registration_form,
+    is_current_tester_registered,
+    get_current_tester_registration,
+    get_registration_stats,
+    clear_current_registration
 )
 
 # Configure page settings
@@ -221,14 +229,44 @@ def show_blind_evaluation():
     """Display the blind evaluation page for authenticated testers"""
     st.header("🎯 Blind LLM Evaluation")
     
-    # Welcome message with user info
-    from utils.auth import get_current_user_email
-    user_email = get_current_user_email()
-    if user_email:
-        st.success(f"Welcome, {user_email}! Thank you for participating in our evaluation.")
+    # Check if current tester is registered
+    if not is_current_tester_registered():
+        # Show registration flow
+        st.markdown("""
+        ### Step 1: Registration Required
+        
+        Before you can participate in the blind evaluation, you need to complete a one-time registration 
+        to provide your consent and ensure data integrity.
+        """)
+        
+        success, registration_record = show_registration_form()
+        
+        if success:
+            st.success("🎉 Registration complete! You may now proceed to the evaluation.")
+            st.rerun()  # Refresh to show evaluation interface
+        
+        return  # Don't show evaluation interface until registered
     
+    # If registered, show evaluation interface
+    registration = get_current_tester_registration()
+    
+    if registration:
+        # Welcome message with registration info
+        st.success(f"Welcome back, {registration['name']}! Thank you for participating in our evaluation.")
+        
+        # Registration details
+        with st.expander("📋 Your Registration Details"):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**Name:** {registration['name']}")
+                st.write(f"**Email:** {registration['email']}")
+            with col2:
+                st.write(f"**Consent Given:** {'✅ Yes' if registration['consent_given'] else '❌ No'}")
+                st.write(f"**Registered:** {registration['registration_timestamp'][:19].replace('T', ' ')}")
+    
+    # Evaluation instructions
     st.markdown("""
-    ### How the Evaluation Works
+    ### 📋 How the Evaluation Works
     
     1. **Anonymous Responses**: You'll see business analysis responses from 4 different LLMs
     2. **Blind Testing**: LLM identities are completely hidden during evaluation
@@ -243,23 +281,36 @@ def show_blind_evaluation():
     """)
     
     # Status indicator
-    st.info("🚧 **Evaluation Interface**: Will be implemented in the next development phase")
+    st.info("🚧 **Evaluation Interface**: Will be implemented in the next development phase (LLM Integration)")
     
     # Placeholder for future evaluation interface
     with st.expander("🔍 Preview: Future Evaluation Interface"):
         st.markdown("""
-        ```
-        Question 1: Retail Sales Analysis
+        **Question 1: Retail Sales Analysis**
         
-        Response A: [LLM Response Hidden]
-        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)
-        Comments: [Text area for feedback]
+        *"Analyze the quarterly sales data for our retail chain and recommend strategies to improve performance in underperforming regions."*
         
-        Response B: [LLM Response Hidden]
-        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)
-        Comments: [Text area for feedback]
-        ```
+        **Response A:** [Anonymous LLM Response]  
+        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
+        Comments: [Your feedback here]
+        
+        **Response B:** [Anonymous LLM Response]  
+        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
+        Comments: [Your feedback here]
+        
+        **Response C:** [Anonymous LLM Response]  
+        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
+        Comments: [Your feedback here]
+        
+        **Response D:** [Anonymous LLM Response]  
+        Rate: ⭐⭐⭐⭐⭐ (1-5 stars)  
+        Comments: [Your feedback here]
         """)
+    
+    # Debug: Clear registration button (for testing only - remove in production)
+    if st.button("🔄 Reset Registration (Testing Only)", help="Clear current registration for testing"):
+        clear_current_registration()
+        st.rerun()
 
 def show_analysis_dashboard():
     """Display the analysis dashboard for administrators"""
@@ -304,15 +355,72 @@ def show_admin_panel():
     Administrative tools for managing the LLM evaluation system.
     """)
     
+    # Registration Statistics Section
+    st.subheader("📊 Registration Statistics")
+    
+    stats = get_registration_stats()
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Registrations", stats["total_registrations"])
+    with col2:
+        st.metric("Consented Testers", stats["consented_registrations"])
+    with col3:
+        st.metric("Completed Evaluations", stats["completed_evaluations"])
+    
+    # Registration Management
+    with st.expander("👥 Registration Management"):
+        st.markdown("**Registered Testers Overview**")
+        
+        # Get registration data
+        storage_key = "tester_registrations"
+        if storage_key in st.session_state and st.session_state[storage_key]:
+            registrations = st.session_state[storage_key]
+            
+            # Display registrations in a table format
+            registration_data = []
+            for email, reg in registrations.items():
+                registration_data.append({
+                    "Name": reg.get("name", "N/A"),
+                    "Email": email,
+                    "Consent": "✅" if reg.get("consent_given", False) else "❌",
+                    "Registered": reg.get("registration_timestamp", "")[:19].replace("T", " "),
+                    "Evaluation Complete": "✅" if reg.get("evaluation_completed", False) else "❌"
+                })
+            
+            if registration_data:
+                import pandas as pd
+                df = pd.DataFrame(registration_data)
+                st.dataframe(df, use_container_width=True)
+                
+                # Export functionality
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Registration Data (CSV)",
+                    data=csv,
+                    file_name=f"tester_registrations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("No registrations found.")
+        else:
+            st.info("No registration data available.")
+    
     # Admin sections
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("👥 User Management")
-        st.info("🚧 Manage tester accounts and evaluation sessions")
-        
         st.subheader("🔧 System Configuration")
         st.info("🚧 Configure LLM APIs and evaluation parameters")
+        
+        # Quick system actions
+        st.markdown("**Quick Actions**")
+        if st.button("🔄 Clear All Registration Data", type="secondary"):
+            if st.checkbox("⚠️ I understand this will delete all registration data"):
+                if "tester_registrations" in st.session_state:
+                    del st.session_state["tester_registrations"]
+                st.success("✅ Registration data cleared")
+                st.rerun()
     
     with col2:
         st.subheader("📊 Data Management")
@@ -320,6 +428,17 @@ def show_admin_panel():
         
         st.subheader("🔍 System Monitoring")
         st.info("🚧 Monitor system health and performance")
+        
+        # Storage information
+        st.markdown("**Storage Status**")
+        total_sessions = len(st.session_state.keys())
+        st.write(f"Session state keys: {total_sessions}")
+        
+        if "tester_registrations" in st.session_state:
+            reg_count = len(st.session_state["tester_registrations"])
+            st.write(f"Stored registrations: {reg_count}")
+        else:
+            st.write("Stored registrations: 0")
 
 if __name__ == "__main__":
     main() 

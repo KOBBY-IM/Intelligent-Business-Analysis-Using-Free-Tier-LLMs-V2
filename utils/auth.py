@@ -114,7 +114,13 @@ def set_user_session(role: Role, email: Optional[str] = None):
 
 def clear_user_session():
     """Clear all user session data."""
+    # Clear authentication data
     for key in ["user_role", "user_email", "authenticated_at"]:
+        if key in st.session_state:
+            del st.session_state[key]
+    
+    # Clear registration data for testers
+    for key in ["tester_registered", "tester_registration"]:
         if key in st.session_state:
             del st.session_state[key]
 
