@@ -7,12 +7,22 @@ import streamlit as st
 import requests
 import os
 
+def get_secret_or_env(key: str, env_key: str) -> str:
+    # Try Streamlit secrets, then environment variable
+    try:
+        value = st.secrets["api_keys"].get(key)
+        if value:
+            return value
+    except Exception:
+        pass
+    return os.environ.get(env_key)
+
 class GroqClient:
     """
     Client for Groq LLM API (llama3-70b-8192).
     """
     def __init__(self, api_key: Optional[str] = None, model: str = "llama3-70b-8192"):
-        self.api_key = api_key or st.secrets["api_keys"].get("groq_api_key")
+        self.api_key = api_key or get_secret_or_env("groq_api_key", "GROQ_API_KEY")
         self.model = model
         self.endpoint = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -42,7 +52,7 @@ class GeminiClient:
     Client for Google Gemini LLM API (gemini-1.5-pro).
     """
     def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-pro"):
-        self.api_key = api_key or st.secrets["api_keys"].get("google_gemini_api_key")
+        self.api_key = api_key or get_secret_or_env("google_gemini_api_key", "GOOGLE_GEMINI_API_KEY")
         self.model = model
         self.endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
 
@@ -68,7 +78,7 @@ class OpenRouterClient:
     Client for OpenRouter LLM API (supports multiple models).
     """
     def __init__(self, api_key: Optional[str] = None, model: str = "mistralai/mistral-small-3.2-24b-instruct"):
-        self.api_key = api_key or st.secrets["api_keys"].get("openrouter_api_key")
+        self.api_key = api_key or get_secret_or_env("openrouter_api_key", "OPENROUTER_API_KEY")
         self.model = model
         self.endpoint = "https://openrouter.ai/api/v1/chat/completions"
 

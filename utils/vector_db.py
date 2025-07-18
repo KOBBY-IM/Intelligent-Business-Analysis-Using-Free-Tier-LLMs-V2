@@ -12,13 +12,15 @@ class VectorDB:
     """
     Abstracts vector database operations for RAG using ChromaDB (client-only mode).
     """
-    def __init__(self, persist_path: str = None):
+    def __init__(self, collection_name: str = "rag_collection", persist_path: str = None):
         """
         Initialize the vector database (in-memory or file-based).
         Args:
+            collection_name: Name of the collection to use (default: 'rag_collection')
             persist_path: Optional path for persistence
         """
         self.persist_path = persist_path
+        self.collection_name = collection_name
         if persist_path:
             self.client = chromadb.Client(Settings(
                 persist_directory=persist_path,
@@ -28,7 +30,8 @@ class VectorDB:
             self.client = chromadb.Client(Settings(
                 is_persistent=False
             ))
-        self.collection = self.client.create_collection("rag_collection")
+        # Use get_or_create_collection for safety
+        self.collection = self.client.get_or_create_collection(self.collection_name)
 
     def add_documents(self, embeddings: List[list], metadatas: List[dict]):
         """

@@ -34,10 +34,10 @@ def main():
     questions = load_questions(questions_path)
     # Define LLMs to use (provider, model)
     llms = [
-        {"provider": "groq", "model": "groq-llm-model"},
-        {"provider": "gemini", "model": "gemini-pro"},
-        {"provider": "openrouter", "model": "openrouter-llm-model-1"},
-        {"provider": "openrouter", "model": "openrouter-llm-model-2"}
+        {"provider": "groq", "model": "llama3-70b-8192"},
+        {"provider": "groq", "model": "moonshotai/kimi-k2-instruct"},
+        {"provider": "openrouter", "model": "google/gemma-3-27b-it:free"},
+        {"provider": "openrouter", "model": "mistralai/mistral-7b-instruct:free"}
     ]
     # Build RAG index for each industry (cache for reuse)
     rag_indices = {}

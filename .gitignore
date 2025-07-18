@@ -92,3 +92,9 @@ dmypy.json
 
 #streamlit
 .streamlit/secrets.toml
+
+# Ignore environment variable and secrets files
+.env
+.env.*
+streamlit_secrets.toml
+.streamlit/secrets.toml
