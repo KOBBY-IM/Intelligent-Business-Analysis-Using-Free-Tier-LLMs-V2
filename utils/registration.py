@@ -102,23 +102,50 @@ def get_registration_storage_key() -> str:
     return "tester_registrations"
 
 def load_registrations_from_file() -> Dict[str, Dict]:
-    """Load registrations from persistent file."""
-    if not os.path.exists(REGISTRATION_FILE):
-        return {}
+    """Load registrations from data store."""
     try:
-        with open(REGISTRATION_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                return data
+        from utils.data_store import create_data_store
+        
+        # Create data store
+        data_store = create_data_store()
+        
+        # Load registration data
+        registrations = data_store.load_registration_data()
+        
+        if isinstance(registrations, dict):
+            return registrations
+        else:
+            st.warning("Invalid registration data format")
             return {}
-    except Exception:
+            
+    except Exception as e:
+        st.error(f"Error loading registrations: {str(e)}")
         return {}
 
 def save_registrations_to_file(registrations: Dict[str, Dict]):
-    """Save registrations to persistent file."""
-    os.makedirs(os.path.dirname(REGISTRATION_FILE), exist_ok=True)
-    with open(REGISTRATION_FILE, 'w', encoding='utf-8') as f:
-        json.dump(registrations, f, indent=2)
+    """Save registrations using the data store."""
+    try:
+        from utils.data_store import create_data_store, validate_registration_data
+        
+        # Create data store
+        data_store = create_data_store()
+        
+        # Save each registration
+        success_count = 0
+        for email, registration_data in registrations.items():
+            if validate_registration_data(registration_data):
+                if data_store.save_registration_data(registration_data):
+                    success_count += 1
+        
+        if success_count == len(registrations):
+            return True
+        else:
+            st.warning(f"Saved {success_count}/{len(registrations)} registrations")
+            return False
+            
+    except Exception as e:
+        st.error(f"Error saving registrations: {str(e)}")
+        return False
 
 def get_registered_emails() -> List[str]:
     """

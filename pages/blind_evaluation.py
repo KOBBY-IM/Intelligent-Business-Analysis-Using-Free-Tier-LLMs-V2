@@ -495,55 +495,60 @@ def collect_evaluation_data() -> Dict:
 
 def save_evaluation_data(evaluation_data: Dict):
     """
-    Save evaluation data to persistent storage.
+    Save evaluation data to persistent storage using GCS.
     
     Args:
         evaluation_data: The evaluation data to save
     """
     try:
-        # Load existing evaluations
-        evaluations_path = os.path.join('data', 'evaluations.json')
-        if os.path.exists(evaluations_path):
-            with open(evaluations_path, 'r', encoding='utf-8') as f:
-                evaluations = json.load(f)
+        # Use GCS data store
+        from utils.data_store import DataStore
+        
+        data_store = DataStore("gcs")
+        
+        # Save evaluation data to GCS
+        success = data_store.save_evaluation_data(evaluation_data)
+        
+        if success:
+            st.success("✅ Evaluation submitted successfully to cloud storage!")
         else:
-            evaluations = []
-        
-        # Add new evaluation
-        evaluations.append(evaluation_data)
-        
-        # Save back to file
-        with open(evaluations_path, 'w', encoding='utf-8') as f:
-            json.dump(evaluations, f, indent=2)
+            st.error("❌ Failed to save evaluation to cloud storage")
+            return
         
         # Mark evaluation as completed in registration
         mark_evaluation_completed(evaluation_data.get("tester_email"))
-        
-        st.success("✅ Evaluation submitted successfully!")
         
     except Exception as e:
         st.error(f"Error saving evaluation: {str(e)}")
 
 def mark_evaluation_completed(email: str):
     """
-    Mark a tester's evaluation as completed.
+    Mark a tester's evaluation as completed using GCS.
     
     Args:
         email: The tester's email address
     """
     try:
-        from utils.registration import load_registrations_from_file, save_registrations_to_file
+        from utils.data_store import DataStore
         
-        # Load registrations
-        registrations = load_registrations_from_file()
+        # Use GCS data store
+        data_store = DataStore("gcs")
+        
+        # Load registrations from GCS
+        registrations = data_store.load_registration_data()
         
         if email in registrations:
             # Mark as completed
             registrations[email]["evaluation_completed"] = True
             registrations[email]["evaluation_completed_timestamp"] = datetime.utcnow().isoformat()
             
-            # Save back to file
-            save_registrations_to_file(registrations)
+            # Save back to GCS
+            success = data_store.save_registration_data(registrations[email])
+            
+            if success:
+                st.success("✅ Evaluation completion status saved to cloud storage")
+            else:
+                st.error("❌ Failed to save completion status to cloud storage")
             
             # Also update session state if available
             if "tester_registrations" in st.session_state and email in st.session_state["tester_registrations"]:
@@ -562,24 +567,27 @@ def display_evaluation_progress(session: Dict):
     
     with col1:
         retail_completed = len([q for q in session["completed_questions"] if q.startswith("retail:")])
-        retail_progress = retail_completed / 6
+        retail_total = len(session["selected_questions"].get("retail", []))
+        retail_progress = retail_completed / retail_total if retail_total > 0 else 0
         st.progress(retail_progress)
-        st.write(f"**Retail Industry**: {retail_completed}/6 questions completed")
+        st.write(f"**Retail Industry**: {retail_completed}/{retail_total} questions completed")
     
     with col2:
         finance_completed = len([q for q in session["completed_questions"] if q.startswith("finance:")])
-        finance_progress = finance_completed / 6
+        finance_total = len(session["selected_questions"].get("finance", []))
+        finance_progress = finance_completed / finance_total if finance_total > 0 else 0
         st.progress(finance_progress)
-        st.write(f"**Finance Industry**: {finance_completed}/6 questions completed")
+        st.write(f"**Finance Industry**: {finance_completed}/{finance_total} questions completed")
     
     # Current status
     current_industry = session["current_industry"]
     current_question_index = session["current_question_index"]
+    current_total = len(session["selected_questions"].get(current_industry, []))
     
     if current_industry == "retail":
-        st.info(f"🛒 Currently evaluating: **Retail Industry** (Question {current_question_index + 1}/6)")
+        st.info(f"🛒 Currently evaluating: **Retail Industry** (Question {current_question_index + 1}/{current_total})")
     else:
-        st.info(f"💰 Currently evaluating: **Finance Industry** (Question {current_question_index + 1}/6)")
+        st.info(f"💰 Currently evaluating: **Finance Industry** (Question {current_question_index + 1}/{current_total})")
     
     st.markdown("---")
 
@@ -588,13 +596,19 @@ def show_completion_message():
     st.balloons()
     st.success("🎉 **Congratulations! You have completed all evaluations!**")
     
-    st.markdown("""
+    # Get actual question counts
+    selected_questions = st.session_state.get("evaluation_session", {}).get("selected_questions", {})
+    retail_count = len(selected_questions.get("retail", []))
+    finance_count = len(selected_questions.get("finance", []))
+    total_count = retail_count + finance_count
+    
+    st.markdown(f"""
     ### 📋 Evaluation Summary
     
     You have successfully completed:
-    - ✅ **6 Retail Industry questions**
-    - ✅ **6 Finance Industry questions**
-    - ✅ **Total: 12 questions evaluated**
+    - ✅ **{retail_count} Retail Industry questions**
+    - ✅ **{finance_count} Finance Industry questions**
+    - ✅ **Total: {total_count} questions evaluated**
     
     ### 📊 What Happens Next
     
@@ -662,10 +676,22 @@ def show_evaluation_interface():
     if "selected_questions" not in st.session_state["evaluation_session"] or not st.session_state["evaluation_session"]["selected_questions"]:
         st.session_state["evaluation_session"]["selected_questions"] = {}
         for industry in questions.keys():
-            # Randomly select 6 questions from 10 available
+            # Get all questions for this industry
             all_questions = questions[industry]
-            selected = random.sample(all_questions, min(6, len(all_questions)))
-            st.session_state["evaluation_session"]["selected_questions"][industry] = selected
+            
+            # Filter questions that have responses available
+            questions_with_responses = []
+            for question in all_questions:
+                question_responses = get_responses_for_question(question, industry, responses)
+                if len(question_responses) >= 2:  # Need at least 2 responses to evaluate
+                    questions_with_responses.append(question)
+            
+            # Select questions (up to 6, or all available if less than 6)
+            if questions_with_responses:
+                selected = random.sample(questions_with_responses, min(6, len(questions_with_responses)))
+                st.session_state["evaluation_session"]["selected_questions"][industry] = selected
+            else:
+                st.session_state["evaluation_session"]["selected_questions"][industry] = []
     
     # Get current evaluation state
     session = st.session_state["evaluation_session"]
@@ -675,23 +701,45 @@ def show_evaluation_interface():
     completed_questions = session["completed_questions"]
     
     # Check if current industry is completed
-    if current_industry == "retail" and len([q for q in completed_questions if q.startswith("retail:")]) >= 6:
-        session["industry_completed"]["retail"] = True
-        session["current_industry"] = "finance"
-        session["current_question_index"] = 0
-        st.rerun()
+    retail_total = len(selected_questions.get("retail", []))
+    finance_total = len(selected_questions.get("finance", []))
     
-    if current_industry == "finance" and len([q for q in completed_questions if q.startswith("finance:")]) >= 6:
+    if current_industry == "retail" and len([q for q in completed_questions if q.startswith("retail:")]) >= retail_total:
+        session["industry_completed"]["retail"] = True
+        if finance_total > 0:
+            session["current_industry"] = "finance"
+            session["current_question_index"] = 0
+            st.rerun()
+        else:
+            # No finance questions, evaluation complete
+            show_completion_message()
+            return
+    
+    if current_industry == "finance" and len([q for q in completed_questions if q.startswith("finance:")]) >= finance_total:
         session["industry_completed"]["finance"] = True
         # Both industries completed
         show_completion_message()
         return
     
+    # Check if there are any questions available for current industry
+    if not selected_questions.get(current_industry):
+        st.warning(f"⚠️ No questions available for {current_industry} industry with responses.")
+        if current_industry == "retail" and selected_questions.get("finance"):
+            session["current_industry"] = "finance"
+            session["current_question_index"] = 0
+            st.rerun()
+        elif current_industry == "finance":
+            show_completion_message()
+            return
+        else:
+            st.error("❌ No questions available for evaluation. Please contact the administrator.")
+            return
+    
     # Get current question
     if current_question_index >= len(selected_questions[current_industry]):
         # All questions for current industry completed
         session["industry_completed"][current_industry] = True
-        if current_industry == "retail":
+        if current_industry == "retail" and selected_questions.get("finance"):
             session["current_industry"] = "finance"
             session["current_question_index"] = 0
             st.rerun()
@@ -721,6 +769,7 @@ def show_evaluation_interface():
         shuffled_responses = shuffle_responses(question_responses)
         
         # Display question and responses
+        question_count = len(selected_questions[current_industry])
         display_question_and_responses(current_question, current_industry, shuffled_responses, current_question_index + 1)
         
         # Submit button
