@@ -45,6 +45,9 @@ def load_technical_metrics_data():
 human_df = load_human_evaluation_data()
 technical_df = load_technical_metrics_data()
 
+filtered_human = pd.DataFrame()
+filtered_tech = pd.DataFrame()
+
 # ---- FILTERS ----
 st.sidebar.header("Filters")
 # Robustly get available columns for filters
