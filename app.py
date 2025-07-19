@@ -19,7 +19,7 @@ from utils.registration import (
 
 # Configure page settings
 st.set_page_config(
-    page_title="Intelligent Business Analysis - Free-Tier LLMs",
+    page_title="Intelligent Business Analysis - Free-Tier LLMs v2.1",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -42,6 +42,7 @@ def main():
     
     # Header
     st.title("🤖 Intelligent Business Analysis Using Free-Tier LLMs")
+    st.caption("🔄 Version 2.1 - Enhanced Evaluation System")
     st.markdown("---")
     
     # Sidebar navigation
