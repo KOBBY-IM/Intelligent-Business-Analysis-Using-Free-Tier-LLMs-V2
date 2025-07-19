@@ -1,26 +1,26 @@
 {
   "retail": [
-    "Which product category has the highest total sales across all regions?",
-    "What is the best-selling product in each region?",
-    "How do sales of electronics compare to other categories?",
-    "Which region generates the most revenue for the company?",
-    "Are there any products that consistently underperform in all regions?",
-    "What is the sales distribution by region for the top three products?",
-    "How do sales trends differ between North America and other regions?",
-    "What is the average sales per product in each category?",
-    "Are there any regions where a specific category dominates sales?",
-    "Which product has the lowest sales in each region?"
+    "Which product category generates the highest total revenue?",
+    "What is the average transaction value per category?",
+    "Which category has the most transactions?",
+    "How does revenue distribution vary across product categories?",
+    "Which region or location generates the highest revenue?",
+    "What is the average transaction value by region?",
+    "How do sales patterns differ across different locations?",
+    "Which region has the most consistent sales performance?",
+    "What are the top 5 best-selling products by revenue?",
+    "Which products have the highest average transaction value?"
   ],
   "finance": [
-    "What was the highest closing price for Tesla in the dataset?",
-    "On which date did Tesla experience the largest single-day price increase?",
-    "What is the average daily trading volume for Tesla?",
-    "How does the opening price trend over the period covered by the data?",
-    "Are there any days with unusually high or low trading volume?",
-    "What is the correlation between trading volume and price change?",
-    "How many days did Tesla close higher than it opened?",
-    "What is the average price change (close minus open) per day?",
-    "Identify periods of high volatility in Tesla’s stock price.",
-    "What is the overall percentage change in Tesla’s closing price from the first to the last date in the dataset?"
+    "What is the overall price trend over the time period?",
+    "On which date did the stock reach its highest closing price?",
+    "What is the average daily price change?",
+    "How many days did the stock close higher than it opened?",
+    "What is the correlation between opening and closing prices?",
+    "What is the average daily price volatility (high-low range)?",
+    "Which days had the largest price swings?",
+    "How does the opening price trend compare to the closing price trend?",
+    "What is the average daily trading volume?",
+    "Are there any days with unusually high trading volume?"
   ]
-} 
+}
