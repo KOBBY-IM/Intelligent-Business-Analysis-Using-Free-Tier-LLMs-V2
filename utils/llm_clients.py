@@ -6,6 +6,8 @@ from typing import Optional, Dict
 import streamlit as st
 import requests
 import os
+import time
+import random
 
 def get_secret_or_env(key: str, env_key: str) -> str:
     # Try Streamlit secrets, then environment variable
@@ -17,11 +19,46 @@ def get_secret_or_env(key: str, env_key: str) -> str:
         pass
     return os.environ.get(env_key)
 
-class GroqClient:
+class BaseLLMClient:
+    """Base class with common retry logic and error handling."""
+    
+    def __init__(self, max_retries: int = 3, base_delay: float = 1.0):
+        self.max_retries = max_retries
+        self.base_delay = base_delay
+    
+    def _retry_with_backoff(self, func, *args, **kwargs):
+        """Retry function with exponential backoff."""
+        for attempt in range(self.max_retries):
+            try:
+                return func(*args, **kwargs)
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 429:  # Rate limit
+                    delay = self.base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    print(f"Rate limited, waiting {delay:.2f}s before retry {attempt + 1}")
+                    time.sleep(delay)
+                    continue
+                elif e.response.status_code >= 500:  # Server error
+                    delay = self.base_delay * (2 ** attempt)
+                    print(f"Server error, waiting {delay:.2f}s before retry {attempt + 1}")
+                    time.sleep(delay)
+                    continue
+                else:
+                    raise
+            except (requests.exceptions.RequestException, Exception) as e:
+                if attempt == self.max_retries - 1:
+                    raise
+                delay = self.base_delay * (2 ** attempt)
+                print(f"Request failed, waiting {delay:.2f}s before retry {attempt + 1}: {e}")
+                time.sleep(delay)
+        
+        raise RuntimeError(f"Failed after {self.max_retries} retries")
+
+class GroqClient(BaseLLMClient):
     """
     Client for Groq LLM API (llama3-70b-8192).
     """
-    def __init__(self, api_key: Optional[str] = None, model: str = "llama3-70b-8192"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "llama3-70b-8192", max_retries: int = 3):
+        super().__init__(max_retries=max_retries)
         self.api_key = api_key or get_secret_or_env("groq_api_key", "GROQ_API_KEY")
         self.model = model
         self.endpoint = "https://api.groq.com/openai/v1/chat/completions"
@@ -36,22 +73,24 @@ class GroqClient:
             "messages": [
                 {"role": "user", "content": prompt}
             ],
-            "max_tokens": kwargs.get("max_tokens", 512),
+            "max_tokens": kwargs.get("max_tokens", 1024),  # Increased for better responses
             "temperature": kwargs.get("temperature", 0.7)
         }
-        try:
-            resp = requests.post(self.endpoint, headers=headers, json=data, timeout=30)
+        
+        def _make_request():
+            resp = requests.post(self.endpoint, headers=headers, json=data, timeout=60)
             resp.raise_for_status()
             result = resp.json()
             return result["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            raise RuntimeError(f"Groq API error: {e}")
+        
+        return self._retry_with_backoff(_make_request)
 
-class GeminiClient:
+class GeminiClient(BaseLLMClient):
     """
     Client for Google Gemini LLM API (gemini-1.5-pro).
     """
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-pro"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-pro", max_retries: int = 3):
+        super().__init__(max_retries=max_retries)
         self.api_key = api_key or get_secret_or_env("google_gemini_api_key", "GOOGLE_GEMINI_API_KEY")
         self.model = model
         self.endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
@@ -62,22 +101,24 @@ class GeminiClient:
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {
                 "temperature": kwargs.get("temperature", 0.7),
-                "maxOutputTokens": kwargs.get("max_tokens", 512)
+                "maxOutputTokens": kwargs.get("max_tokens", 1024)  # Increased for better responses
             }
         }
-        try:
-            resp = requests.post(self.endpoint, headers=headers, json=data, timeout=30)
+        
+        def _make_request():
+            resp = requests.post(self.endpoint, headers=headers, json=data, timeout=60)
             resp.raise_for_status()
             result = resp.json()
             return result["candidates"][0]["content"]["parts"][0]["text"].strip()
-        except Exception as e:
-            raise RuntimeError(f"Gemini API error: {e}")
+        
+        return self._retry_with_backoff(_make_request)
 
-class OpenRouterClient:
+class OpenRouterClient(BaseLLMClient):
     """
     Client for OpenRouter LLM API (supports multiple models).
     """
-    def __init__(self, api_key: Optional[str] = None, model: str = "mistralai/mistral-small-3.2-24b-instruct"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "mistralai/mistral-7b-instruct", max_retries: int = 5):
+        super().__init__(max_retries=max_retries, base_delay=2.0)  # More retries and longer delays for OpenRouter
         self.api_key = api_key or get_secret_or_env("openrouter_api_key", "OPENROUTER_API_KEY")
         self.model = model
         self.endpoint = "https://openrouter.ai/api/v1/chat/completions"
@@ -94,16 +135,22 @@ class OpenRouterClient:
             "messages": [
                 {"role": "user", "content": prompt}
             ],
-            "max_tokens": kwargs.get("max_tokens", 512),
+            "max_tokens": kwargs.get("max_tokens", 1024),  # Increased for better responses
             "temperature": kwargs.get("temperature", 0.7)
         }
-        try:
-            resp = requests.post(self.endpoint, headers=headers, json=data, timeout=30)
+        
+        def _make_request():
+            resp = requests.post(self.endpoint, headers=headers, json=data, timeout=60)
             resp.raise_for_status()
             result = resp.json()
             return result["choices"][0]["message"]["content"].strip()
+        
+        try:
+            return self._retry_with_backoff(_make_request)
         except Exception as e:
-            raise RuntimeError(f"OpenRouter API error: {e}")
+            # If all retries fail, provide a fallback response
+            print(f"OpenRouter failed after all retries: {e}")
+            return f"Unable to generate response due to API limitations. Please try again later or contact support. Error: {str(e)}"
 
 # Utility function to select and instantiate a client by provider/model
 

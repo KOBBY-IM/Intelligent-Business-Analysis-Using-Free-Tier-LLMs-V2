@@ -148,14 +148,14 @@ def display_evaluation_instructions():
     You will be presented with business analysis questions and responses from different AI models. 
     **You will not know which model generated each response** - they are labeled as Response A, B, C, and D.
     
-    ### 📊 Ground Truth Context
-    Before evaluating each response, you will see a **"Ground Truth Context"** section that provides factual information about the question. This context includes:
-    - **Key metrics and data points** relevant to the question
-    - **Industry-specific insights** and benchmarks
-    - **Factual background** to help you assess response accuracy
-    - **Expected outcomes** or typical results for similar scenarios
+    ### 🎯 Ground Truth Answer & Context
+    Before evaluating each response, you will see a **"Ground Truth Answer & Context"** section that provides:
+    - **🎯 The correct answer** to the question based on actual dataset analysis
+    - **📊 Key statistics and metrics** from the real data
+    - **📈 Important insights** that should be mentioned in good responses
+    - **🔍 Factual background** to help you assess response accuracy
     
-    Use this ground truth information to make more informed evaluations of the AI responses.
+    **Use this ground truth information as your primary reference** when evaluating the AI responses. Compare each response against these facts to assess accuracy and completeness.
     
     ### How to Evaluate Each Response:
     
@@ -174,11 +174,11 @@ def display_evaluation_instructions():
     - 5 = Highly Relevant: Perfectly addresses the question with precision
     
     **Accuracy (1-5 scale):**
-    - 1 = Inaccurate: Contains errors or false information
-    - 2 = Mostly Inaccurate: Several errors present
-    - 3 = Somewhat Accurate: Mix of correct and incorrect information
-    - 4 = Accurate: Generally correct with minor issues
-    - 5 = Highly Accurate: Factually correct and reliable
+    - 1 = Inaccurate: Contains errors or contradicts ground truth data
+    - 2 = Mostly Inaccurate: Several errors when compared to ground truth
+    - 3 = Somewhat Accurate: Mix of correct and incorrect information vs ground truth
+    - 4 = Accurate: Generally aligns with ground truth with minor issues
+    - 5 = Highly Accurate: Factually correct and matches ground truth data
     
     **Uniformity (1-5 scale):**
     - 1 = Inconsistent: Contradictory or poorly organized
@@ -187,8 +187,94 @@ def display_evaluation_instructions():
     - 4 = Consistent: Well-structured and organized
     - 5 = Highly Consistent: Excellent structure and flow
     
-    ### Additional Comments:
-    Please provide specific feedback about what worked well or could be improved in each response. Consider how well the response aligns with the provided ground truth context.
+    ### 📝 Evaluation Process:
+    
+    1. **Rate Each Response**: Provide ratings for Quality, Relevance, Accuracy, and Uniformity for each response
+    2. **Submit & Continue**: Click "Submit & Continue" to save ratings and move to the next question
+    3. **Complete All Questions**: Continue through all questions for both industries
+    4. **Provide Final Written Feedback**: At the end, provide comprehensive written feedback on overall impressions
+    
+    ### 📊 Final Assessment:
+    
+    After completing all questions, you will provide:
+    - **Overall ratings** for quality, relevance, accuracy, and usefulness
+    - **Detailed written feedback** on strengths and weaknesses
+    - **Suggestions** for improving AI business analysis
+    - **General observations** about the evaluation experience
+    
+    **Note**: Individual ratings are collected for each response, but detailed written feedback is provided only at the end!
+    """)
+
+def display_dataset_overview():
+    """Display comprehensive overview of the datasets used in evaluation."""
+    st.markdown("""
+    ## 📊 Dataset Overview
+    
+    This evaluation uses two comprehensive business datasets that serve as the knowledge base for AI model responses. Understanding these datasets will help you better assess the accuracy and relevance of the AI responses.
+    
+    ### 🛍️ Retail Dataset: E-commerce Shopping Trends
+    **File:** `shopping_trends_with_rag.csv`
+    
+    **📈 Scale & Scope:**
+    - **3,900 purchase records** across 20 data fields
+    - **$233,081 total revenue** with $59.76 average purchase
+    - Customer IDs ranging from 1 to 3,900
+    
+    **🛍️ Product Categories (Revenue Distribution):**
+    - **Clothing**: $104,264 (44.7%) - 1,737 purchases
+    - **Accessories**: $74,200 (31.8%) - 1,240 purchases  
+    - **Footwear**: $36,093 (15.5%) - 599 purchases
+    - **Outerwear**: $18,524 (7.9%) - 324 purchases
+    
+    **👥 Customer Demographics:**
+    - **Age Range**: 18-70 years
+    - **Gender Split**: 68% Male, 32% Female
+    - **Geographic Coverage**: All 50 US states
+    - **Top Revenue States**: Montana, Illinois, California, Idaho, Nevada
+    
+    **💳 Business Operations:**
+    - **Payment Methods**: Credit Card, Venmo, Cash, PayPal, Debit Card, Bank Transfer (evenly distributed ~16-18% each)
+    - **Seasonal Distribution**: Spring (25.6%), Fall (25.0%), Winter (24.9%), Summer (24.5%)
+    - **Customer Satisfaction**: Average rating 3.75/5.0 (range: 2.5-5.0)
+    
+    ### 📈 Finance Dataset: Tesla Stock Analysis
+    **File:** `Tesla_stock_data_with_rag.csv`
+    
+    **📊 Market Data:**
+    - **3,782 trading days** from June 29, 2010 to July 11, 2025
+    - **Complete OHLCV data**: Open, High, Low, Close, Volume
+    - **Price Range**: $1.00 (lowest) to $488.54 (highest)
+    - **Current Price**: $313.51
+    
+    **📈 Performance Metrics:**
+    - **Total Return**: +19,584.59% (from $1.59 to $313.51)
+    - **Average Close**: $89.59
+    - **Volatility**: 3.66% daily, 58.13% annualized
+    - **Total Volume**: 367 billion shares traded
+    
+    **📅 Historical Trends:**
+    - **2010-2019**: Early growth phase ($1.56-$20.95 average)
+    - **2020**: Breakout year ($96.67 average, 57B volume)
+    - **2021-2022**: Peak performance ($260-$263 average)
+    - **2023-2025**: Stabilization ($217-$316 average)
+    
+    ### 🎯 Purpose in LLM Evaluation
+    
+    These datasets serve as the **knowledge base for the RAG (Retrieval-Augmented Generation) system** that:
+    
+    1. **Grounds LLM Responses**: Provides factual business data for AI models to reference
+    2. **Enables Business Analysis**: Covers key business domains (retail e-commerce and financial markets)
+    3. **Supports Evaluation Questions**: Contains the data needed to answer the evaluation questions
+    4. **Ensures Accuracy**: Allows comparison between AI responses and actual dataset statistics
+    
+    ### 🔧 How They're Used
+    
+    - **RAG Pipeline**: Documents are chunked, embedded, and stored for retrieval
+    - **Evaluation Questions**: Questions reference specific aspects of these datasets
+    - **Ground Truth**: Actual statistics from these datasets form the "correct" answers
+    - **AI Responses**: Models generate responses based on retrieved context from these datasets
+    
+    The datasets provide a realistic business intelligence scenario where AI models must analyze customer behavior, sales performance, market trends, and financial metrics to provide actionable insights.
     """)
 
 def display_question_and_responses(question: str, industry: str, responses: List[Dict], question_number: int = None):
@@ -209,10 +295,9 @@ def display_question_and_responses(question: str, industry: str, responses: List
     st.markdown("---")
     
     # Display ground truth information to aid evaluation
-    st.markdown("### 📊 Ground Truth Context")
+    st.markdown("### 🎯 Ground Truth Answer & Context")
     ground_truth = get_ground_truth_for_question(question, industry)
-    with st.expander("📋 View Ground Truth Information", expanded=True):
-        st.markdown(ground_truth)
+    st.markdown(ground_truth)
     st.markdown("---")
     
     # Display each response
@@ -226,7 +311,7 @@ def display_question_and_responses(question: str, industry: str, responses: List
         with st.expander(f"View Response {anonymous_id}", expanded=True):
             st.markdown(response_text)
         
-        # Rating section
+        # Rating section (keep ratings, remove comments)
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -261,21 +346,12 @@ def display_question_and_responses(question: str, industry: str, responses: List
                 help="Rate the consistency and organization of this response"
             )
         
-        # Comments section
-        comments = st.text_area(
-            f"Comments for Response {anonymous_id}",
-            placeholder="Provide specific feedback about this response...",
-            key=f"comments_{anonymous_id}",
-            height=100
-        )
-        
-        # Store ratings in session state
+        # Store ratings in session state (without comments)
         st.session_state[f"ratings_{anonymous_id}"] = {
             "quality": quality_rating,
             "relevance": relevance_rating,
             "accuracy": accuracy_rating,
             "uniformity": uniformity_rating,
-            "comments": comments,
             "response_id": response.get("llm_model", "unknown")
         }
         
@@ -284,6 +360,7 @@ def display_question_and_responses(question: str, industry: str, responses: List
 def get_ground_truth_for_question(question: str, industry: str) -> str:
     """
     Get ground truth information for a specific question to aid evaluation.
+    This provides actual dataset-based information to help evaluators assess response accuracy.
     
     Args:
         question: The question text
@@ -294,166 +371,285 @@ def get_ground_truth_for_question(question: str, industry: str) -> str:
     """
     ground_truth_data = {
         "retail": {
-            "What product had the highest sales last quarter?": """
-            **Ground Truth Context:**
-            - **Highest Selling Product:** iPhone 15 Pro (23,450 units)
-            - **Revenue Generated:** $2.34M (32% of total Q3 revenue)
-            - **Key Factors:** New product launch, strong marketing campaign, high customer demand
-            - **Regional Performance:** Best in Northeast (45% of sales)
-            - **Customer Segment:** Primarily premium customers (78% of buyers)
+            "Which product category generates the highest total revenue?": """
+            **🎯 Ground Truth Answer: Clothing Category**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Clothing Revenue:** $104,264.00 (44.7% of total)
+            - **Accessories Revenue:** $74,200.00 (31.8% of total)
+            - **Footwear Revenue:** $36,093.00 (15.5% of total)
+            - **Outerwear Revenue:** $18,524.00 (7.9% of total)
+            - **Total Revenue:** $233,081.00
+            
+            **📈 Key Insights:**
+            - Clothing is the dominant category by a significant margin
+            - Clothing accounts for nearly half of all revenue
+            - Clear hierarchy: Clothing > Accessories > Footwear > Outerwear
+            - Revenue distribution shows strong category performance differences
             """,
-            "Which region saw the largest growth in electronics sales?": """
-            **Ground Truth Context:**
-            - **Top Growing Region:** Southwest (47% growth YoY)
-            - **Sales Increase:** $890K → $1.31M
-            - **Key Drivers:** New store openings, local marketing campaigns, tech-savvy population
-            - **Product Mix:** Smartphones (45%), laptops (30%), accessories (25%)
-            - **Competition:** 3 major competitors in the region
+            
+            "What is the average transaction value per category?": """
+            **🎯 Ground Truth Answer: Similar averages across categories**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Accessories Average:** $59.84 per transaction
+            - **Clothing Average:** $60.03 per transaction
+            - **Footwear Average:** $60.26 per transaction
+            - **Outerwear Average:** $57.17 per transaction
+            - **Overall Average:** $59.76 per transaction
+            
+            **📈 Key Insights:**
+            - Very similar average transaction values across categories
+            - Minimal variation suggests consistent pricing strategy
+            - All categories perform within a narrow range
             """,
-            "How did seasonal promotions affect our Q4 revenue?": """
-            **Ground Truth Context:**
-            - **Q4 Revenue Impact:** +18% increase vs Q3
-            - **Promotion Period:** Black Friday to New Year (6 weeks)
-            - **Key Promotions:** 20% off electronics, BOGO on accessories, free shipping
-            - **Revenue Breakdown:** $4.2M total, $756K attributed to promotions
-            - **Customer Acquisition:** 2,340 new customers during promotion period
+            
+            "Which category has the most transactions?": """
+            **🎯 Ground Truth Answer: Clothing category has the most transactions**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Clothing Transactions:** 1,737 transactions
+            - **Accessories Transactions:** 1,240 transactions
+            - **Footwear Transactions:** 599 transactions
+            - **Outerwear Transactions:** 324 transactions
+            - **Total Transactions:** 3,900 transactions
+            
+            **📈 Key Insights:**
+            - Clothing dominates both revenue and transaction count
+            - Transaction distribution mirrors revenue distribution
+            - High volume drives clothing's revenue leadership
             """,
-            "What are the top 3 customer complaints about our online store?": """
-            **Ground Truth Context:**
-            - **#1 Complaint:** Slow website loading (34% of complaints)
-            - **#2 Complaint:** Difficult checkout process (28% of complaints)
-            - **#3 Complaint:** Poor mobile experience (22% of complaints)
-            - **Total Complaints:** 1,247 in Q4
-            - **Resolution Rate:** 89% resolved within 48 hours
+            
+            "How does revenue distribution vary across product categories?": """
+            **🎯 Ground Truth Answer: Highly concentrated in clothing category**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Clothing:** 44.7% of total revenue ($104,264.00)
+            - **Accessories:** 31.8% of total revenue ($74,200.00)
+            - **Footwear:** 15.5% of total revenue ($36,093.00)
+            - **Outerwear:** 7.9% of total revenue ($18,524.00)
+            
+            **📈 Key Insights:**
+            - Heavy concentration in clothing and accessories
+            - Clear revenue hierarchy across categories
+            - Significant revenue gap between top and bottom categories
             """,
-            "Which product category has the highest return rate?": """
-            **Ground Truth Context:**
-            - **Highest Return Rate:** Clothing & Apparel (12.3%)
-            - **Return Reasons:** Size issues (45%), quality concerns (30%), style mismatch (25%)
-            - **Average Return Rate:** 6.8% across all categories
-            - **Financial Impact:** $234K in processing costs annually
-            - **Customer Satisfaction:** 78% satisfied with return process
+            
+            "Which region or location generates the highest revenue?": """
+            **🎯 Ground Truth Answer: Based on actual location data**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Top Revenue Locations:** Montana ($5,784), Illinois ($5,617), California ($5,605)
+            - **Geographic Distribution:** Sales across all 50 states
+            
+            **📈 Key Insights:**
+            - Strong performance in major population centers
+            - Geographic diversity in customer base
+            - Regional marketing opportunities
             """,
-            "How has our mobile app usage changed over the last 6 months?": """
-            **Ground Truth Context:**
-            - **Usage Growth:** +67% increase in daily active users
-            - **Current Users:** 45,230 daily active users
-            - **Key Features:** Mobile checkout (89% usage), product search (76%), reviews (45%)
-            - **Performance:** 2.3 second average load time
-            - **User Retention:** 68% of users return within 7 days
+            
+            "What is the average transaction value by region?": """
+            **🎯 Ground Truth Answer: Varies by region**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Top Average Locations:** Alaska ($67.60), Pennsylvania ($66.57), Arizona ($66.55)
+            - **Overall Average:** $59.76 per transaction
+            
+            **📈 Key Insights:**
+            - Regional variations in spending patterns
+            - Population density affects spending
+            - Market segmentation opportunities
             """,
-            "What is the average customer lifetime value in our premium segment?": """
-            **Ground Truth Context:**
-            - **Premium CLV:** $2,847 average over 3 years
-            - **Segment Size:** 12,450 customers
-            - **Purchase Frequency:** 4.2 purchases per year
-            - **Average Order Value:** $225
-            - **Retention Rate:** 87% annual retention
+            
+            "How do sales patterns differ across different locations?": """
+            **🎯 Ground Truth Answer: Significant regional variations**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Geographic Coverage:** All 50 states represented
+            - **Regional Preferences:** Vary by climate and demographics
+            - **Category Distribution:** Consistent across regions
+            
+            **📈 Key Insights:**
+            - Climate affects product preferences
+            - Regional culture influences buying patterns
+            - Localized marketing strategies needed
             """,
-            "Which marketing channel generates the most qualified leads?": """
-            **Ground Truth Context:**
-            - **Top Channel:** Google Ads (34% of qualified leads)
-            - **Lead Quality Score:** 8.7/10
-            - **Conversion Rate:** 12.3% (leads to customers)
-            - **Cost per Lead:** $45
-            - **ROI:** 340% return on ad spend
+            
+            "Which region has the most consistent sales performance?": """
+            **🎯 Ground Truth Answer: Based on transaction volume consistency**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Transaction Distribution:** Spread across all states
+            - **Consistency Factors:** Population, economic factors
+            - **Regional Patterns:** Vary by market size
+            
+            **📈 Key Insights:**
+            - Larger markets provide stable revenue base
+            - Predictable sales patterns aid planning
+            - Portfolio diversification across regions
             """,
-            "How do our prices compare to competitors in the mid-range market?": """
-            **Ground Truth Context:**
-            - **Price Position:** 8% above market average
-            - **Competitor Analysis:** 5 major competitors surveyed
-            - **Price Premium Justified By:** Better service (92% satisfaction), warranty coverage, faster delivery
-            - **Customer Perception:** 78% believe prices are fair for quality
-            - **Market Share:** 23% in mid-range segment
+            
+            "What are the top 5 best-selling products by revenue?": """
+            **🎯 Ground Truth Answer: Based on actual product revenue data**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Top Products:** Blouse ($10,410), Shirt ($10,332), Dress ($10,320)
+            - **Revenue Concentration:** Top products drive significant revenue
+            
+            **📈 Key Insights:**
+            - Premium products drive significant revenue
+            - High-value items crucial for profitability
+            - Brand positioning important
             """,
-            "What factors contributed to the 15% increase in customer satisfaction scores?": """
-            **Ground Truth Context:**
-            - **Satisfaction Score:** 4.6/5 (up from 4.0/5)
-            - **Key Factors:** Improved customer service (40% contribution), better product quality (35%), faster delivery (25%)
-            - **Survey Responses:** 8,450 customers surveyed
-            - **Response Rate:** 67%
-            - **Timeline:** Improvement over 6-month period
+            
+            "Which products have the highest average transaction value?": """
+            **🎯 Ground Truth Answer: Based on product category averages**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Category Averages:** Clothing ($60.03), Accessories ($59.84), Footwear ($60.26), Outerwear ($57.17)
+            - **Overall Average:** $59.76 per transaction
+            
+            **📈 Key Insights:**
+            - Premium positioning drives higher values
+            - Quality perception affects pricing
+            - Brand value important for margins
             """
         },
+        
         "finance": {
-            "What was the closing price of Tesla stock on 2024-01-01?": """
-            **Ground Truth Context:**
-            - **Tesla (TSLA) Closing Price:** $248.42
-            - **Trading Volume:** 89.2 million shares
-            - **Day Range:** $245.18 - $252.67
-            - **Market Cap:** $789.2 billion
-            - **52-Week Range:** $138.80 - $299.29
+            "What is the overall price trend over the time period?": """
+            **🎯 Ground Truth Answer: Strong upward trend with massive growth**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Starting Price:** $1.59
+            - **Ending Price:** $313.51
+            - **Total Return:** 19,584.59%
+            - **Price Range:** $1.00 to $488.54
+            
+            **📈 Key Insights:**
+            - One of the most successful stock investments in history
+            - Massive growth from startup to major company
+            - Clear long-term upward trajectory
             """,
-            "How did Tesla's trading volume change over the last week?": """
-            **Ground Truth Context:**
-            - **Average Daily Volume:** 67.8 million shares
-            - **Volume Change:** +23% vs previous week
-            - **Peak Volume Day:** Wednesday (89.4M shares)
-            - **Lowest Volume Day:** Friday (45.2M shares)
-            - **Volume Drivers:** Earnings announcement, market volatility, institutional trading
+            
+            "On which date did the stock reach its highest closing price?": """
+            **🎯 Ground Truth Answer: 2024-12-17**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Highest Closing Price:** $479.86
+            - **Date:** 2024-12-17
+            - **Context:** During strong market rally and growth phase
+            
+            **📈 Key Insights:**
+            - Peak occurred during market euphoria
+            - High volatility around peak levels
+            - Important resistance level for technical analysis
             """,
-            "What were the key factors driving the market volatility this quarter?": """
-            **Ground Truth Context:**
-            - **Volatility Index (VIX):** Averaged 18.7 (up from 15.2)
-            - **Key Factors:** Federal Reserve policy uncertainty (40%), geopolitical tensions (30%), earnings season (20%), inflation concerns (10%)
-            - **Sector Impact:** Technology (-8%), Energy (+12%), Healthcare (+3%)
-            - **Market Correlation:** 0.78 across major indices
+            
+            "What is the average daily price change?": """
+            **🎯 Ground Truth Answer: High volatility with significant daily swings**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Average Daily Change:** 0.21%
+            - **Volatility:** 3.66%
+            - **Daily Range:** 4.3%
+            
+            **📈 Key Insights:**
+            - High daily volatility characteristic
+            - Risk management crucial for investors
+            - Opportunities for active trading
             """,
-            "How did the Federal Reserve's interest rate decision impact bond yields?": """
-            **Ground Truth Context:**
-            - **Fed Decision:** Maintained 5.25-5.50% target range
-            - **10-Year Treasury Yield:** Increased from 4.15% to 4.42% (+27bps)
-            - **2-Year Treasury Yield:** Increased from 4.85% to 5.12% (+27bps)
-            - **Yield Curve:** Steepened by 15 basis points
-            - **Market Reaction:** 2.3% increase in bond market volatility
+            
+            "How many days did the stock close higher than it opened?": """
+            **🎯 Ground Truth Answer: 49.6% of trading days**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Positive Close Days:** 1,877 days
+            - **Negative Close Days:** 1,905 days
+            - **Positive Percentage:** 49.6%
+            
+            **📈 Key Insights:**
+            - Slight positive bias over time
+            - High intraday volatility common
+            - Gap trading opportunities exist
             """,
-            "What is the correlation between oil prices and airline stock performance?": """
-            **Ground Truth Context:**
-            - **Correlation Coefficient:** -0.67 (strong negative correlation)
-            - **Oil Price Movement:** +12% over 6 months
-            - **Airline Stock Performance:** -8% over same period
-            - **Fuel Cost Impact:** 25-30% of airline operating costs
-            - **Hedging Strategies:** 60% of airlines use fuel hedging
+            
+            "What is the correlation between opening and closing prices?": """
+            **🎯 Ground Truth Answer: Strong positive correlation**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Correlation Coefficient:** 1.00
+            - **Daily Range:** 4.3%
+            
+            **📈 Key Insights:**
+            - Opening price predictive of daily direction
+            - High intraday volatility despite correlation
+            - Gap trading strategies possible
             """,
-            "How did the tech sector perform compared to the S&P 500 this year?": """
-            **Ground Truth Context:**
-            - **Tech Sector Performance:** +28.4% YTD
-            - **S&P 500 Performance:** +18.7% YTD
-            - **Outperformance:** +9.7 percentage points
-            - **Top Performers:** NVIDIA (+189%), Meta (+156%), Apple (+45%)
-            - **Sector Weight:** 28.5% of S&P 500 market cap
+            
+            "What is the average daily price volatility (high-low range)?": """
+            **🎯 Ground Truth Answer: High daily volatility with wide ranges**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Average Daily Range:** 4.3%
+            - **Volatility:** 3.66%
+            
+            **📈 Key Insights:**
+            - High volatility characteristic of growth stock
+            - Wide daily ranges provide trading opportunities
+            - Risk management essential for position sizing
             """,
-            "What were the main risks identified in our quarterly risk assessment?": """
-            **Ground Truth Context:**
-            - **Top Risk:** Interest rate volatility (Risk Score: 8.7/10)
-            - **Second Risk:** Credit default risk (Risk Score: 7.9/10)
-            - **Third Risk:** Liquidity constraints (Risk Score: 7.2/10)
-            - **Risk Mitigation:** Diversification (40%), hedging (35%), monitoring (25%)
-            - **Risk Tolerance:** Conservative (target 5% max portfolio risk)
+            
+            "Which days had the largest price swings?": """
+            **🎯 Ground Truth Answer: High volume days and major events**
+            
+            **📊 Actual Dataset Statistics:**
+            - **High Volume Days:** 190 days above 241,592,475 volume
+            - **Volume Threshold:** 95th percentile volume
+            
+            **📈 Key Insights:**
+            - Volume spikes indicate major events
+            - Institutional activity increases on news
+            - Volume confirms price movement significance
             """,
-            "How did currency fluctuations affect our international portfolio returns?": """
-            **Ground Truth Context:**
-            - **Currency Impact:** -2.3% on total returns
-            - **Strongest Currency:** Euro (+4.2% vs USD)
-            - **Weakest Currency:** Japanese Yen (-8.7% vs USD)
-            - **Hedging Coverage:** 65% of international exposure
-            - **Net Currency Effect:** Reduced returns by $2.4M
+            
+            "How does the opening price trend compare to the closing price trend?": """
+            **🎯 Ground Truth Answer: Both show strong upward trends**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Correlation:** 1.00
+            - **Trend Alignment:** Strong correlation between open and close trends
+            
+            **📈 Key Insights:**
+            - Both prices follow same long-term trend
+            - High correlation despite daily volatility
+            - Technical analysis applicable to both
             """,
-            "What is the current debt-to-equity ratio for major banks?": """
-            **Ground Truth Context:**
-            - **JPMorgan Chase:** 1.23 (Industry Average: 1.15)
-            - **Bank of America:** 1.18
-            - **Wells Fargo:** 1.12
-            - **Citigroup:** 1.31
-            - **Regulatory Requirement:** Maximum 1.5 for systemically important banks
+            
+            "What is the average daily trading volume?": """
+            **🎯 Ground Truth Answer: High and variable trading volume**
+            
+            **📊 Actual Dataset Statistics:**
+            - **Average Daily Volume:** 97,109,460 shares
+            - **Volume Range:** 1,777,500 to 914,082,000 shares
+            
+            **📈 Key Insights:**
+            - Very liquid stock with high trading activity
+            - Volume spikes during major events
+            - Institutional and retail participation
             """,
-            "How did the housing market respond to recent policy changes?": """
-            **Ground Truth Context:**
-            - **Policy Change:** Mortgage rate cap at 6.5%
-            - **Market Response:** +3.2% increase in home sales
-            - **Price Impact:** +1.8% median home price increase
-            - **Inventory:** -12% available homes
-            - **Days on Market:** Reduced from 45 to 32 days
+            
+            "Are there any days with unusually high trading volume?": """
+            **🎯 Ground Truth Answer: Yes, significant volume spikes on major events**
+            
+            **📊 Actual Dataset Statistics:**
+            - **High Volume Days:** 190 days
+            - **Volume Threshold:** 241,592,475 shares (95th percentile)
+            
+            **📈 Key Insights:**
+            - Volume spikes indicate major events
+            - Institutional activity increases on news
+            - Retail participation spikes on volatility
             """
         }
     }
@@ -461,10 +657,11 @@ def get_ground_truth_for_question(question: str, industry: str) -> str:
     # Get ground truth for the specific question
     industry_data = ground_truth_data.get(industry, {})
     ground_truth = industry_data.get(question, """
-    **Ground Truth Context:**
+    **🎯 Ground Truth Context:**
     - **Note:** Ground truth data is being compiled for this question
     - **Evaluation Focus:** Please assess the response based on clarity, relevance, and logical reasoning
     - **Context:** Consider whether the response provides actionable business insights
+    - **Data Accuracy:** Check if the response aligns with the provided dataset information
     """)
     
     return ground_truth
@@ -490,6 +687,53 @@ def collect_evaluation_data() -> Dict:
         rating_key = f"ratings_{response_id}"
         if rating_key in st.session_state:
             evaluation_data["ratings"][response_id] = st.session_state[rating_key]
+    
+    return evaluation_data
+
+def collect_final_evaluation_data() -> Dict:
+    """
+    Collect final evaluation data including overall feedback.
+    
+    Returns:
+        Dictionary containing final evaluation data
+    """
+    # Get evaluation session data
+    session = st.session_state.get("evaluation_session", {})
+    completed_questions = session.get("completed_questions", set())
+    selected_questions = session.get("selected_questions", {})
+    
+    # Count completed questions
+    retail_count = len([q for q in completed_questions if q.startswith("retail:")])
+    finance_count = len([q for q in completed_questions if q.startswith("finance:")])
+    total_count = retail_count + finance_count
+    
+    # Get final feedback
+    final_feedback = st.session_state.get("final_feedback", {})
+    
+    evaluation_data = {
+        "tester_email": st.session_state.get("user_email"),
+        "tester_name": st.session_state.get("tester_name"),
+        "evaluation_timestamp": datetime.utcnow().isoformat(),
+        "evaluation_type": "final_assessment",
+        "questions_evaluated": {
+            "retail_count": retail_count,
+            "finance_count": finance_count,
+            "total_count": total_count,
+            "completed_questions": list(completed_questions)
+        },
+        "overall_ratings": {
+            "overall_quality": final_feedback.get("overall_quality", 0),
+            "overall_relevance": final_feedback.get("overall_relevance", 0),
+            "overall_accuracy": final_feedback.get("overall_accuracy", 0),
+            "overall_usefulness": final_feedback.get("overall_usefulness", 0)
+        },
+        "detailed_feedback": {
+            "strengths": final_feedback.get("strengths", ""),
+            "weaknesses": final_feedback.get("weaknesses", ""),
+            "suggestions": final_feedback.get("suggestions", ""),
+            "general_comments": final_feedback.get("general_comments", "")
+        }
+    }
     
     return evaluation_data
 
@@ -592,7 +836,7 @@ def display_evaluation_progress(session: Dict):
     st.markdown("---")
 
 def show_completion_message():
-    """Show completion message when all evaluations are done."""
+    """Show completion message and collect final feedback when all evaluations are done."""
     st.balloons()
     st.success("🎉 **Congratulations! You have completed all evaluations!**")
     
@@ -609,27 +853,122 @@ def show_completion_message():
     - ✅ **{retail_count} Retail Industry questions**
     - ✅ **{finance_count} Finance Industry questions**
     - ✅ **Total: {total_count} questions evaluated**
-    
-    ### 📊 What Happens Next
-    
-    Your evaluations have been saved and will be used for:
-    - **Performance analysis** of different AI models
-    - **Comparative research** between LLM providers
-    - **Quality assessment** of business analysis capabilities
-    
-    Thank you for your valuable contribution to this research!
     """)
     
-    # Mark evaluation as completed
-    tester_email = st.session_state.get("user_email")
-    if tester_email:
-        mark_evaluation_completed(tester_email)
+    # Final Feedback Collection
+    st.markdown("### 📝 Final Assessment Feedback")
+    st.markdown("""
+    Please provide your overall assessment of the AI model responses you evaluated. 
+    This feedback will help us understand your general impressions and suggestions for improvement.
+    """)
     
-    # Option to reset for testing (remove in production)
-    if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
-        if "evaluation_session" in st.session_state:
-            del st.session_state["evaluation_session"]
-        st.rerun()
+    # Overall ratings
+    st.markdown("#### 📊 Overall Assessment Ratings")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        overall_quality = st.selectbox(
+            "Overall Quality of Responses",
+            options=[1, 2, 3, 4, 5],
+            help="Rate the overall quality of all AI responses you evaluated"
+        )
+        
+        overall_relevance = st.selectbox(
+            "Overall Relevance of Responses",
+            options=[1, 2, 3, 4, 5],
+            help="Rate how relevant the responses were to the business questions"
+        )
+    
+    with col2:
+        overall_accuracy = st.selectbox(
+            "Overall Accuracy of Responses",
+            options=[1, 2, 3, 4, 5],
+            help="Rate the factual accuracy compared to ground truth data"
+        )
+        
+        overall_usefulness = st.selectbox(
+            "Overall Usefulness for Business",
+            options=[1, 2, 3, 4, 5],
+            help="Rate how useful these responses would be for business decision-making"
+        )
+    
+    # Detailed feedback
+    st.markdown("#### 💭 Detailed Feedback")
+    
+    strengths = st.text_area(
+        "What were the strengths of the AI responses?",
+        placeholder="Describe what worked well, what impressed you, or what was particularly helpful...",
+        height=120
+    )
+    
+    weaknesses = st.text_area(
+        "What were the weaknesses or areas for improvement?",
+        placeholder="Describe what could be better, what was confusing, or what was missing...",
+        height=120
+    )
+    
+    suggestions = st.text_area(
+        "What suggestions do you have for improving AI business analysis?",
+        placeholder="Share your ideas for how AI could better serve business intelligence needs...",
+        height=120
+    )
+    
+    general_comments = st.text_area(
+        "Any additional comments or observations?",
+        placeholder="Share any other thoughts about the evaluation experience or AI capabilities...",
+        height=100
+    )
+    
+    # Store final feedback in session state
+    final_feedback = {
+        "overall_quality": overall_quality,
+        "overall_relevance": overall_relevance,
+        "overall_accuracy": overall_accuracy,
+        "overall_usefulness": overall_usefulness,
+        "strengths": strengths,
+        "weaknesses": weaknesses,
+        "suggestions": suggestions,
+        "general_comments": general_comments
+    }
+    
+    st.session_state["final_feedback"] = final_feedback
+    
+    # Submit final feedback
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        if st.button("📤 Submit Final Assessment", type="primary", use_container_width=True):
+            # Collect and save final evaluation data
+            evaluation_data = collect_final_evaluation_data()
+            save_evaluation_data(evaluation_data)
+            
+            # Mark evaluation as completed
+            tester_email = st.session_state.get("user_email")
+            if tester_email:
+                mark_evaluation_completed(tester_email)
+            
+            st.success("✅ Final assessment submitted successfully!")
+            st.markdown("""
+            ### 📊 What Happens Next
+            
+            Your comprehensive evaluation has been saved and will be used for:
+            - **Performance analysis** of different AI models
+            - **Comparative research** between LLM providers
+            - **Quality assessment** of business analysis capabilities
+            - **Improvement recommendations** for AI business intelligence tools
+            
+            Thank you for your valuable contribution to this research!
+            """)
+            
+            # Option to reset for testing (remove in production)
+            if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
+                if "evaluation_session" in st.session_state:
+                    del st.session_state["evaluation_session"]
+                if "final_feedback" in st.session_state:
+                    del st.session_state["final_feedback"]
+                st.rerun()
 
 def show_evaluation_interface():
     """Main function to display the blind evaluation interface."""
@@ -661,6 +1000,10 @@ def show_evaluation_interface():
     # Display instructions
     with st.expander("📋 Evaluation Instructions", expanded=False):
         display_evaluation_instructions()
+    
+    # Display dataset overview
+    with st.expander("📊 Dataset Overview", expanded=False):
+        display_dataset_overview()
     
     # Initialize evaluation session state
     if "evaluation_session" not in st.session_state:
@@ -772,7 +1115,7 @@ def show_evaluation_interface():
         question_count = len(selected_questions[current_industry])
         display_question_and_responses(current_question, current_industry, shuffled_responses, current_question_index + 1)
         
-        # Submit button
+        # Submit button (collect individual ratings)
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         
@@ -789,7 +1132,7 @@ def show_evaluation_interface():
                 
                 # Clear session state for next evaluation
                 for key in list(st.session_state.keys()):
-                    if key.startswith("ratings_") or key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_") or key.startswith("comments_"):
+                    if key.startswith("ratings_") or key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_"):
                         del st.session_state[key]
                 
                 st.success("✅ Question submitted! Moving to next question...")
