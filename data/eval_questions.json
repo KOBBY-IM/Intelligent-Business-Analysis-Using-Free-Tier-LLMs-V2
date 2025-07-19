@@ -1,26 +1,26 @@
 {
   "retail": [
-    "What product had the highest sales last quarter?",
-    "Which region saw the largest growth in electronics sales?",
-    "How did seasonal promotions affect our Q4 revenue?",
-    "What are the top 3 customer complaints about our online store?",
-    "Which product category has the highest return rate?",
-    "How has our mobile app usage changed over the last 6 months?",
-    "What is the average customer lifetime value in our premium segment?",
-    "Which marketing channel generates the most qualified leads?",
-    "How do our prices compare to competitors in the mid-range market?",
-    "What factors contributed to the 15% increase in customer satisfaction scores?"
+    "Which product category has the highest total sales across all regions?",
+    "What is the best-selling product in each region?",
+    "How do sales of electronics compare to other categories?",
+    "Which region generates the most revenue for the company?",
+    "Are there any products that consistently underperform in all regions?",
+    "What is the sales distribution by region for the top three products?",
+    "How do sales trends differ between North America and other regions?",
+    "What is the average sales per product in each category?",
+    "Are there any regions where a specific category dominates sales?",
+    "Which product has the lowest sales in each region?"
   ],
   "finance": [
-    "What was the closing price of Tesla stock on 2024-01-01?",
-    "How did Tesla's trading volume change over the last week?",
-    "What were the key factors driving the market volatility this quarter?",
-    "How did the Federal Reserve's interest rate decision impact bond yields?",
-    "What is the correlation between oil prices and airline stock performance?",
-    "How did the tech sector perform compared to the S&P 500 this year?",
-    "What were the main risks identified in our quarterly risk assessment?",
-    "How did currency fluctuations affect our international portfolio returns?",
-    "What is the current debt-to-equity ratio for major banks?",
-    "How did the housing market respond to recent policy changes?"
+    "What was the highest closing price for Tesla in the dataset?",
+    "On which date did Tesla experience the largest single-day price increase?",
+    "What is the average daily trading volume for Tesla?",
+    "How does the opening price trend over the period covered by the data?",
+    "Are there any days with unusually high or low trading volume?",
+    "What is the correlation between trading volume and price change?",
+    "How many days did Tesla close higher than it opened?",
+    "What is the average price change (close minus open) per day?",
+    "Identify periods of high volatility in Tesla’s stock price.",
+    "What is the overall percentage change in Tesla’s closing price from the first to the last date in the dataset?"
   ]
 } 

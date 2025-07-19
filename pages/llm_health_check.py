@@ -13,8 +13,8 @@ st.title("🤖 LLM Health Check Dashboard")
 LLMS = [
     {"provider": "groq", "model": "llama3-70b-8192"},
     {"provider": "groq", "model": "moonshotai/kimi-k2-instruct"},
-    {"provider": "openrouter", "model": "google/gemma-3-27b-it:free"},
-    {"provider": "openrouter", "model": "mistralai/mistral-7b-instruct:free"}
+    {"provider": "openrouter", "model": "mistralai/mistral-7b-instruct"},
+    {"provider": "openrouter", "model": "deepseek/deepseek-r1-0528-qwen3-8b"},
 ]
 
 TEST_PROMPT = "What is the capital of France?"

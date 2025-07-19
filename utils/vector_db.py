@@ -61,4 +61,10 @@ class VectorDB:
             n_results=top_k
         )
         # Return metadata for top results
-        return [meta for meta in results["metadatas"][0]] 
+        return [meta for meta in results["metadatas"][0]]
+
+    def num_documents(self) -> int:
+        """
+        Return the number of documents in the collection.
+        """
+        return self.collection.count() 
