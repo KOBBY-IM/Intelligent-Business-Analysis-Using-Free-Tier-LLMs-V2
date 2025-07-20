@@ -6,7 +6,6 @@ from utils.auth import (
     get_current_user_email,
     enforce_page_access, 
     show_logout_button,
-    show_tester_login,
     show_admin_login
 )
 from utils.registration import (
@@ -61,10 +60,12 @@ def main():
     if current_role == "admin":
         nav_options.insert(-1, "Analysis Dashboard")
         nav_options.insert(-1, "Admin Panel")
+        # Add direct access to analysis pages for admins
+        nav_options.extend(["Blind Evaluation Analysis", "Technical Metrics Analysis"])
     
-    # If not authenticated, show login options
+    # If not authenticated, show admin login option only
     if not current_role:
-        nav_options.extend(["Tester Login", "Admin Login"])
+        nav_options.append("Admin Login")
     
     # Determine default page based on user role and session state
     current_page_in_session = st.session_state.get("current_page")
@@ -72,7 +73,7 @@ def main():
     if current_role == "tester":
         # For testers, ensure they're not on login pages or invalid pages
         if (not current_page_in_session or 
-            current_page_in_session in ["Tester Login", "Admin Login"] or 
+            current_page_in_session in ["Admin Login"] or 
             current_page_in_session not in nav_options):
             default_page = "Blind Evaluation"
         else:
@@ -80,15 +81,15 @@ def main():
     elif current_role == "admin":
         # For admins, ensure they're not on login pages or invalid pages  
         if (not current_page_in_session or 
-            current_page_in_session in ["Tester Login", "Admin Login"] or 
+            current_page_in_session in ["Admin Login"] or 
             current_page_in_session not in nav_options):
             default_page = "Analysis Dashboard"
         else:
             default_page = current_page_in_session
     else:
-        # For unauthenticated users
+        # For unauthenticated users - default to Blind Evaluation for easier access
         if not current_page_in_session or current_page_in_session not in nav_options:
-            default_page = nav_options[0]  # Default to first available option
+            default_page = "Blind Evaluation"  # Changed from nav_options[0] to "Blind Evaluation"
         else:
             default_page = current_page_in_session
     
@@ -109,19 +110,24 @@ def main():
         show_home()
     elif page == "System Status":
         show_system_status()
-    elif page == "Tester Login":
-        show_tester_login_page()
     elif page == "Admin Login":
         show_admin_login_page()
     elif page == "Blind Evaluation":
         if enforce_page_access("Blind Evaluation", "tester"):
-            show_blind_evaluation()
+            # Redirect directly to the blind evaluation Streamlit page
+            st.switch_page("pages/blind_evaluation.py")
     elif page == "Analysis Dashboard":
         if enforce_page_access("Analysis Dashboard", "admin"):
             show_analysis_dashboard()
     elif page == "Admin Panel":
         if enforce_page_access("Admin Panel", "admin"):
             show_admin_panel()
+    elif page == "Blind Evaluation Analysis":
+        if enforce_page_access("Blind Evaluation Analysis", "admin"):
+            st.switch_page("pages/blind_evaluation_analysis.py")
+    elif page == "Technical Metrics Analysis":
+        if enforce_page_access("Technical Metrics Analysis", "admin"):
+            st.switch_page("pages/technical_metrics_analysis.py")
     else:
         st.info(f"📋 {page} - Under Development")
         st.markdown("This page will be implemented in upcoming releases.")
@@ -278,23 +284,6 @@ def show_system_status():
     st.subheader("💾 Resource Status")
     st.info("📊 Resource monitoring will be implemented for production deployment")
 
-def show_tester_login_page():
-    """Display tester login page"""
-    st.header("🔐 External Tester Authentication")
-    st.markdown("""
-    Welcome to the Blind Evaluation System for Free-Tier LLM Comparison.
-    
-    **Important Information:**
-    - You will evaluate responses from 4 different LLMs blindly (identities hidden)
-    - Your email will be recorded for research purposes
-    - Only one evaluation per email address is permitted
-    - Your responses will help improve AI system selection for businesses
-    - **After successful login, you'll be automatically redirected to the evaluation page**
-    """)
-    
-    st.markdown("---")
-    show_tester_login()
-
 def show_admin_login_page():
     """Display admin login page"""
     st.header("🔐 Administrator Authentication")
@@ -311,48 +300,9 @@ def show_admin_login_page():
     show_admin_login()
 
 def show_blind_evaluation():
-    """Display the blind evaluation page for authenticated testers"""
+    """Display the blind evaluation page for testers"""
     
-    # Check if current tester is registered
-    if not is_current_tester_registered():
-        # Show registration flow
-        st.markdown("""
-        ### Step 1: Registration Required
-        
-        Before you can participate in the blind evaluation, you need to complete a one-time registration 
-        to provide your consent and ensure data integrity.
-        """)
-        
-        success, registration_record = show_registration_form()
-        
-        if success:
-            st.success("🎉 Registration complete! You may now proceed to the evaluation.")
-            st.rerun()  # Refresh to show evaluation interface
-        
-        return  # Don't show evaluation interface until registered
-    
-    # If registered, show evaluation interface
-    registration = get_current_tester_registration()
-    
-    if registration:
-        # Store tester info in session state for the evaluation page
-        st.session_state["tester_name"] = registration['name']
-        st.session_state["tester_email"] = registration['email']
-        
-        # Welcome message with registration info
-        st.success(f"Welcome back, {registration['name']}! Thank you for participating in our evaluation.")
-        
-        # Registration details
-        with st.expander("📋 Your Registration Details"):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write(f"**Name:** {registration['name']}")
-                st.write(f"**Email:** {registration['email']}")
-            with col2:
-                st.write(f"**Consent Given:** {'✅ Yes' if registration['consent_given'] else '❌ No'}")
-                st.write(f"**Registered:** {registration['registration_timestamp'][:19].replace('T', ' ')}")
-    
-    # Import and run the blind evaluation page
+    # Import and run the blind evaluation page directly
     try:
         from pages.blind_evaluation import show_evaluation_interface
         show_evaluation_interface()
@@ -361,44 +311,65 @@ def show_blind_evaluation():
     except Exception as e:
         st.error(f"❌ Error loading evaluation interface: {str(e)}")
         st.error(f"Debug: {type(e).__name__}: {str(e)}")
-    
-    # Debug: Clear registration button (for testing only - remove in production)
-    if st.button("🔄 Reset Registration (Testing Only)", help="Clear current registration for testing"):
-        clear_current_registration()
-        st.rerun()
 
 def show_analysis_dashboard():
     """Display the analysis dashboard for administrators"""
     st.header("📊 Analysis Dashboard")
     
     st.markdown("""
-    ### Evaluation Results Overview
+    ### Analysis Tools Overview
     
-    This dashboard provides comprehensive analysis of LLM performance based on:
-    - **Human Evaluation Data**: Blind tester ratings and feedback
-    - **Technical Performance Metrics**: Latency, throughput, reliability
-    - **Comparative Analysis**: Side-by-side LLM performance comparison
+    This dashboard provides access to comprehensive analysis tools for LLM evaluation:
     """)
     
-    # Tabs for different analysis views
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📈 Performance Overview", 
-        "👥 Human Evaluations", 
-        "⚡ Technical Metrics", 
-        "📋 Detailed Reports"
-    ])
+    # Analysis options with links to dedicated pages
+    col1, col2 = st.columns(2)
     
-    with tab1:
-        st.info("🚧 **Performance Overview**: Real-time LLM comparison charts will be displayed here")
-        
-    with tab2:
-        st.info("🚧 **Human Evaluations**: Blind evaluation results and tester feedback analysis")
-        
-    with tab3:
-        st.info("🚧 **Technical Metrics**: Automated performance monitoring results")
-        
-    with tab4:
-        st.info("🚧 **Detailed Reports**: Downloadable analysis reports and data exports")
+    with col1:
+        st.subheader("👥 Blind Evaluation Analysis")
+        st.markdown("""
+        **Human Evaluation Data Analysis**
+        - Statistical analysis with confidence intervals
+        - Multi-dimensional LLM performance comparison
+        - Rating distributions and significance testing
+        - Qualitative feedback analysis
+        """)
+        if st.button("🔍 View Blind Evaluation Analysis", key="blind_analysis_btn"):
+            st.switch_page("pages/blind_evaluation_analysis.py")
+    
+    with col2:
+        st.subheader("⚡ Technical Metrics Analysis")
+        st.markdown("""
+        **Automated Performance Analysis**
+        - Performance metrics over time
+        - Latency, throughput, and reliability analysis
+        - Failure analysis and rate limit detection
+        - Industry-specific performance comparisons
+        """)
+        if st.button("📈 View Technical Metrics Analysis", key="tech_analysis_btn"):
+            st.switch_page("pages/technical_metrics_analysis.py")
+    
+    st.markdown("---")
+    
+    # Quick access to other analysis tools
+    st.subheader("🚀 Quick Access")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("🏠 Analysis Hub", key="hub_btn"):
+            st.switch_page("pages/analysis.py")
+    
+    with col2:
+        if st.button("🔍 LLM Health Check", key="health_btn"):
+            st.switch_page("pages/llm_health_check.py")
+    
+    with col3:
+        if st.button("📊 All Analysis Pages", key="all_btn"):
+            st.info("Use the 'app' navigation in the sidebar to access all analysis pages")
+    
+    st.markdown("---")
+    st.info("💡 **Tip**: Use the 'app' section in the sidebar for direct access to all analysis pages.")
 
 def show_admin_panel():
     """Display the admin panel for system management"""

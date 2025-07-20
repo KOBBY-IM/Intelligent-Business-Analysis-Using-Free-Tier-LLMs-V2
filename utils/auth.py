@@ -2,13 +2,14 @@
 Authentication and access control module for the LLM Evaluation System.
 
 This module provides secure role-based authentication for:
-- External testers (blind evaluation access)
-- Administrators (full system access including analysis)
+- External testers (registration-based access)
+- Administrators (password-based access)
 """
 
 import streamlit as st
 import hashlib
 from typing import Optional, Literal
+from datetime import datetime
 
 # User roles
 Role = Literal["tester", "admin", None]
@@ -48,23 +49,6 @@ def hash_credential(credential: str) -> str:
     """
     return hashlib.sha256(credential.encode()).hexdigest()
 
-def verify_tester_access(token: str) -> bool:
-    """
-    Verify external tester access token.
-    
-    Args:
-        token: The access token provided by the tester
-    
-    Returns:
-        True if token is valid, False otherwise
-    """
-    expected_token = get_secret_safely("auth.tester_access_token")
-    if not expected_token:
-        st.error("🔒 Tester access not configured. Please contact the administrator.")
-        return False
-    
-    return token.strip() == expected_token.strip()
-
 def verify_admin_access(password: str) -> bool:
     """
     Verify administrator password.
@@ -102,99 +86,45 @@ def get_current_user_email() -> Optional[str]:
 
 def set_user_session(role: Role, email: Optional[str] = None):
     """
-    Set user session data.
+    Set user session data after successful authentication.
     
     Args:
-        role: User role (tester, admin, or None)
+        role: User role (tester or admin)
         email: User email (for testers)
     """
     st.session_state["user_role"] = role
-    st.session_state["user_email"] = email
-    st.session_state["authenticated_at"] = st.session_state.get("authenticated_at", None)
+    if email:
+        st.session_state["user_email"] = email
+    st.session_state["login_timestamp"] = datetime.utcnow().isoformat()
 
 def clear_user_session():
-    """Clear all user session data."""
-    # Clear authentication data
-    for key in ["user_role", "user_email", "authenticated_at"]:
+    """Clear user session data on logout."""
+    keys_to_clear = ["user_role", "user_email", "login_timestamp"]
+    for key in keys_to_clear:
         if key in st.session_state:
             del st.session_state[key]
-    
-    # Clear registration data for testers
-    for key in ["tester_registered", "tester_registration"]:
-        if key in st.session_state:
-            del st.session_state[key]
-    
-    # Reset current page to default
-    if "current_page" in st.session_state:
-        del st.session_state["current_page"]
 
 def require_role(required_role: Role) -> bool:
     """
     Check if current user has the required role.
     
     Args:
-        required_role: The role required to access the resource
+        required_role: Role required to access the page
     
     Returns:
         True if user has required role, False otherwise
     """
     current_role = get_current_user_role()
     
-    # Admin has access to everything
-    if current_role == "admin":
-        return True
+    if not current_role:
+        st.error("🔒 Authentication required. Please log in to access this page.")
+        return False
     
-    # Check specific role requirements
-    if required_role == "tester" and current_role == "tester":
-        return True
+    if current_role != required_role:
+        st.error(f"🔒 Access denied. This page requires {required_role} privileges.")
+        return False
     
-    return False
-
-def show_tester_login() -> bool:
-    """
-    Display tester login form and handle authentication.
-    
-    Returns:
-        True if authentication successful, False otherwise
-    """
-    st.subheader("🔐 External Tester Access")
-    st.markdown("Please enter your access token to participate in the evaluation.")
-    
-    with st.form("tester_login"):
-        access_token = st.text_input(
-            "Access Token",
-            type="password",
-            placeholder="Enter your access token"
-        )
-        email = st.text_input(
-            "Email Address",
-            placeholder="Enter your email address"
-        )
-        
-        col1, col2 = st.columns([1, 3])
-        submitted = col1.form_submit_button("Access Evaluation")
-        
-        if submitted:
-            if not access_token:
-                st.error("❌ Please enter your access token.")
-                return False
-            
-            if not email or "@" not in email:
-                st.error("❌ Please enter a valid email address.")
-                return False
-            
-            if verify_tester_access(access_token):
-                set_user_session("tester", email)
-                # Set the current page to Blind Evaluation for testers
-                st.session_state["current_page"] = "Blind Evaluation"
-                st.success("✅ Access granted! Welcome to the evaluation system.")
-                st.rerun()
-                return True
-            else:
-                st.error("❌ Invalid access token. Please check your credentials.")
-                return False
-    
-    return False
+    return True
 
 def show_admin_login() -> bool:
     """
@@ -251,8 +181,9 @@ def show_logout_button():
                 st.sidebar.caption(f"Email: {current_email}")
         
         # Logout button
-        if st.sidebar.button("🚪 Logout", type="secondary"):
+        if st.sidebar.button("🚪 Logout", use_container_width=True):
             clear_user_session()
+            st.success("✅ Logged out successfully!")
             st.rerun()
 
 def enforce_page_access(page_name: str, required_role: Role = None) -> bool:
@@ -261,29 +192,19 @@ def enforce_page_access(page_name: str, required_role: Role = None) -> bool:
     
     Args:
         page_name: Name of the page being accessed
-        required_role: Role required to access the page
+        required_role: Role required to access the page (None for any authenticated user)
     
     Returns:
-        True if access granted, False if access denied
+        True if access is allowed, False otherwise
     """
     current_role = get_current_user_role()
     
-    # Public pages (no authentication required)
-    public_pages = ["Home", "System Status"]
-    if page_name in public_pages:
-        return True
+    if not current_role:
+        st.error(f"🔒 Authentication required to access {page_name}.")
+        return False
     
-    # Check role-specific access
-    if required_role and not require_role(required_role):
-        st.error(f"🔒 Access Denied: {page_name}")
-        st.markdown(f"You need **{required_role}** privileges to access this page.")
-        
-        # Show appropriate login form
-        if required_role == "tester" and current_role != "admin":
-            show_tester_login()
-        elif required_role == "admin" and current_role != "admin":
-            show_admin_login()
-        
+    if required_role and current_role != required_role:
+        st.error(f"🔒 Access denied. {page_name} requires {required_role} privileges.")
         return False
     
     return True 

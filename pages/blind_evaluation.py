@@ -287,63 +287,136 @@ def display_question_and_responses(question: str, industry: str, responses: List
         responses: List of responses to display (should be shuffled)
         question_number: The current question number (optional)
     """
+    # Question header with larger font
     if question_number is not None:
-        st.markdown(f"### 🎯 Question {question_number} of 6 ({industry.title()} Industry)")
+        st.markdown(f"""
+        <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: #1f77b4;">
+        🎯 Question {question_number} of 6 ({industry.title()} Industry)
+        </h2>
+        """, unsafe_allow_html=True)
     else:
-        st.markdown(f"### 🎯 Question ({industry.title()} Industry)")
-    st.markdown(f"**{question}**")
+        st.markdown(f"""
+        <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: #1f77b4;">
+        🎯 Question ({industry.title()} Industry)
+        </h2>
+        """, unsafe_allow_html=True)
+    
+    # Question text with much larger, prominent font
+    st.markdown(f"""
+    <div style="background-color: #f8f9fa; border: 2px solid #1f77b4; border-radius: 10px; padding: 25px; margin: 20px 0;">
+        <h3 style="font-size: 1.8rem; margin-bottom: 1rem; color: #2c3e50;">
+        📋 Business Question:
+        </h3>
+        <p style="font-size: 1.6rem; line-height: 1.6; font-weight: 500; color: #34495e;">
+        {question}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("---")
     
     # Display ground truth information to aid evaluation
-    st.markdown("### 🎯 Ground Truth Answer & Context")
+    st.markdown("""
+    <h3 style="font-size: 1.6rem; margin-bottom: 1rem; color: #27ae60;">
+    🎯 Ground Truth Answer & Context
+    </h3>
+    """, unsafe_allow_html=True)
     ground_truth = get_ground_truth_for_question(question, industry)
-    st.markdown(ground_truth)
+    st.markdown(f"""
+    <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 8px; padding: 20px; font-size: 1.5rem; line-height: 1.7;">
+    {ground_truth}
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
     
     # Display each response
-    for response in responses:
-        anonymous_id = response.get("anonymous_id", "Unknown")
+    for i, response in enumerate(responses, 1):
+        # Convert anonymous_id to include "RESPONSE" prefix
+        original_anonymous_id = response.get("anonymous_id", f"Response {i}")
+        if original_anonymous_id in ["A", "B", "C", "D"]:
+            anonymous_id = f"RESPONSE {original_anonymous_id}"
+        else:
+            anonymous_id = original_anonymous_id
+        
         response_text = response.get("response", "No response available")
         
-        st.markdown(f"#### Response {anonymous_id}")
+        st.markdown(f"""
+        <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: #e67e22;">
+        🤖 {anonymous_id}
+        </h3>
+        """, unsafe_allow_html=True)
         
-        # Response text in an expander
-        with st.expander(f"View Response {anonymous_id}", expanded=True):
-            st.markdown(response_text)
+        # Response text in an expander with larger font
+        with st.expander(f"📄 View {anonymous_id}", expanded=True):
+            st.markdown(f"""
+            <div style="font-size: 1.3rem; line-height: 1.6; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+            {response_text}
+            </div>
+            """, unsafe_allow_html=True)
         
-        # Rating section (keep ratings, remove comments)
+        # Rating section with larger fonts
+        st.markdown("""
+        <h4 style="font-size: 1.4rem; margin: 20px 0 15px 0; color: #2c3e50;">
+        📊 Rate This Response:
+        </h4>
+        """, unsafe_allow_html=True)
+        
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
+            st.markdown("""
+            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+            <strong>Quality</strong>
+            </div>
+            """, unsafe_allow_html=True)
             quality_rating = st.selectbox(
-                f"Quality Rating",
+                "Quality Rating",
                 options=[1, 2, 3, 4, 5],
                 key=f"quality_{anonymous_id}",
-                help="Rate the overall quality of this response"
+                help="Rate the overall quality of this response",
+                label_visibility="collapsed"
             )
         
         with col2:
+            st.markdown("""
+            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+            <strong>Relevance</strong>
+            </div>
+            """, unsafe_allow_html=True)
             relevance_rating = st.selectbox(
-                f"Relevance Rating",
+                "Relevance Rating",
                 options=[1, 2, 3, 4, 5],
                 key=f"relevance_{anonymous_id}",
-                help="Rate how relevant this response is to the question"
+                help="Rate how relevant this response is to the question",
+                label_visibility="collapsed"
             )
         
         with col3:
+            st.markdown("""
+            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+            <strong>Accuracy</strong>
+            </div>
+            """, unsafe_allow_html=True)
             accuracy_rating = st.selectbox(
-                f"Accuracy Rating",
+                "Accuracy Rating",
                 options=[1, 2, 3, 4, 5],
                 key=f"accuracy_{anonymous_id}",
-                help="Rate the factual accuracy of this response"
+                help="Rate the factual accuracy of this response",
+                label_visibility="collapsed"
             )
         
         with col4:
+            st.markdown("""
+            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+            <strong>Uniformity</strong>
+            </div>
+            """, unsafe_allow_html=True)
             uniformity_rating = st.selectbox(
-                f"Uniformity Rating",
+                "Uniformity Rating",
                 options=[1, 2, 3, 4, 5],
                 key=f"uniformity_{anonymous_id}",
-                help="Rate the consistency and organization of this response"
+                help="Rate the consistency and organization of this response",
+                label_visibility="collapsed"
             )
         
         # Store ratings in session state (without comments)
@@ -804,7 +877,11 @@ def mark_evaluation_completed(email: str):
 
 def display_evaluation_progress(session: Dict):
     """Display progress through the evaluation."""
-    st.markdown("### 📊 Evaluation Progress")
+    st.markdown("""
+    <h3 style="font-size: 1.8rem; margin-bottom: 1.5rem; color: #2c3e50;">
+    📊 Evaluation Progress
+    </h3>
+    """, unsafe_allow_html=True)
     
     # Progress bars
     col1, col2 = st.columns(2)
@@ -814,14 +891,22 @@ def display_evaluation_progress(session: Dict):
         retail_total = len(session["selected_questions"].get("retail", []))
         retail_progress = retail_completed / retail_total if retail_total > 0 else 0
         st.progress(retail_progress)
-        st.write(f"**Retail Industry**: {retail_completed}/{retail_total} questions completed")
+        st.markdown(f"""
+        <div style="font-size: 1.3rem; margin-top: 0.5rem;">
+        <strong>🛒 Retail Industry</strong>: {retail_completed}/{retail_total} questions completed
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
         finance_completed = len([q for q in session["completed_questions"] if q.startswith("finance:")])
         finance_total = len(session["selected_questions"].get("finance", []))
         finance_progress = finance_completed / finance_total if finance_total > 0 else 0
         st.progress(finance_progress)
-        st.write(f"**Finance Industry**: {finance_completed}/{finance_total} questions completed")
+        st.markdown(f"""
+        <div style="font-size: 1.3rem; margin-top: 0.5rem;">
+        <strong>💰 Finance Industry</strong>: {finance_completed}/{finance_total} questions completed
+        </div>
+        """, unsafe_allow_html=True)
     
     # Current status
     current_industry = session["current_industry"]
@@ -829,9 +914,17 @@ def display_evaluation_progress(session: Dict):
     current_total = len(session["selected_questions"].get(current_industry, []))
     
     if current_industry == "retail":
-        st.info(f"🛒 Currently evaluating: **Retail Industry** (Question {current_question_index + 1}/{current_total})")
+        st.markdown(f"""
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 1.4rem;">
+        🛒 <strong>Currently evaluating: Retail Industry</strong> (Question {current_question_index + 1}/{current_total})
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.info(f"💰 Currently evaluating: **Finance Industry** (Question {current_question_index + 1}/{current_total})")
+        st.markdown(f"""
+        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 1.4rem;">
+        💰 <strong>Currently evaluating: Finance Industry</strong> (Question {current_question_index + 1}/{current_total})
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
 
@@ -951,32 +1044,247 @@ def show_completion_message():
             
             st.success("✅ Final assessment submitted successfully!")
             st.markdown("""
-            ### 📊 What Happens Next
-            
+    ### 📊 What Happens Next
+    
             Your comprehensive evaluation has been saved and will be used for:
-            - **Performance analysis** of different AI models
-            - **Comparative research** between LLM providers
-            - **Quality assessment** of business analysis capabilities
+    - **Performance analysis** of different AI models
+    - **Comparative research** between LLM providers
+    - **Quality assessment** of business analysis capabilities
             - **Improvement recommendations** for AI business intelligence tools
+    
+    Thank you for your valuable contribution to this research!
+    """)
+    
+    # Option to reset for testing (remove in production)
+    if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
+        if "evaluation_session" in st.session_state:
+            del st.session_state["evaluation_session"]
+        if "final_feedback" in st.session_state:
+            del st.session_state["final_feedback"]
+        st.rerun()
+
+def show_registration_form():
+    """Display the registration form for testers with improved UI"""
+    
+    # Page header with larger font
+    st.markdown("""
+    <h1 style="font-size: 3rem; margin-bottom: 1.5rem;">🔍 Comparative Analysis of Free-Tier LLMs in Business Intelligence</h1>
+    """, unsafe_allow_html=True)
+    st.markdown("---")
+    
+    # Create two columns for better layout
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown("""
+        <h2 style="font-size: 2.2rem; margin-bottom: 1.5rem;">📊 Study Information</h2>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="font-size: 1.4rem; line-height: 1.7;">
+        <strong>Study Purpose:</strong> This research evaluates the performance of free-tier Large Language Models (LLMs) 
+        in business intelligence contexts, specifically focusing on AI-generated responses to business questions 
+        across retail and finance industries.
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <h3 style="font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1.5rem;">✨ Key Features</h3>
+        <div style="font-size: 1.4rem; line-height: 1.7;">
+        • <strong>Blind evaluation</strong> - response sources are hidden<br>
+        • <strong>Real business scenarios</strong> - questions reflect industry challenges<br>
+        • <strong>Multiple AI models</strong> - responses from leading free-tier LLMs<br>
+        • <strong>Research contribution</strong> - feedback advances AI evaluation methodologies
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <h3 style="font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1.5rem;">🎯 What You'll Do</h3>
+        <div style="font-size: 1.4rem; line-height: 1.7;">
+        1. Review business scenarios from different industries<br>
+        2. Compare AI responses from multiple LLM providers<br>
+        3. Select the best response based on relevance and quality<br>
+        4. Provide feedback on response effectiveness
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <h3 style="font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1.5rem;">⏱️ Expected Duration</h3>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #1f77b4;">
+        <strong>20-30 minutes</strong> - You can pause and resume at any time.
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <h3 style="font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1.5rem;">🔒 Data Privacy</h3>
+        <div style="font-size: 1.4rem; line-height: 1.7;">
+        • All responses are anonymized<br>
+        • No personal information collected beyond email<br>
+        • Results used for academic research only
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <h2 style="font-size: 2.2rem; margin-bottom: 1.5rem;">✏️ Registration & Consent</h2>
+        """, unsafe_allow_html=True)
+        
+        # Required registration notice with larger font
+        st.markdown("""
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 20px; margin: 20px 0; font-size: 1.4rem;">
+        <strong>Required Registration:</strong> Before participating, you must provide your email and agree to the consent form below. 
+        Your responses will be anonymized and used for research purposes only.
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Consent form expander with larger font
+        with st.expander("📋 View Consent Form", expanded=False):
+            st.markdown("""
+            <div style="font-size: 1.4rem; line-height: 1.7;">
+            <h4 style="font-size: 1.6rem; margin-bottom: 1.5rem;">Research Consent Form</h4>
             
-            Thank you for your valuable contribution to this research!
-            """)
+            <strong>Study Title:</strong> Comparative Analysis of Free-Tier LLMs in Business Intelligence<br><br>
             
-            # Option to reset for testing (remove in production)
-            if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
-                if "evaluation_session" in st.session_state:
-                    del st.session_state["evaluation_session"]
-                if "final_feedback" in st.session_state:
-                    del st.session_state["final_feedback"]
-                st.rerun()
+            <strong>Purpose:</strong> This study evaluates the performance of different AI language models in business analysis tasks.<br><br>
+            
+            <strong>Your Participation:</strong> You will evaluate responses from 4 AI models without knowing which generated each response.<br><br>
+            
+            <strong>Data Collection:</strong> Your ratings, comments, name, and email will be collected for research and stored securely.<br><br>
+            
+            <strong>Your Rights:</strong> You can withdraw at any time. Participation is voluntary.<br><br>
+            
+            <strong>Contact:</strong> For questions about this research, please contact the study administrator.
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Registration form
+        with st.form("registration_form"):
+            # Returning user notice with larger font
+            st.markdown("""
+            <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 20px 0; font-size: 1.4rem;">
+            💡 <strong>Returning User?</strong> Simply enter your email to continue where you left off.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Email input with larger font
+            st.markdown("""
+            <div style="font-size: 1.4rem; margin-bottom: 0.5rem;">
+            <strong>Email Address</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            email = st.text_input(
+                "Email Address",
+                placeholder="your@email.com",
+                help="Your email address (only one evaluation per email)",
+                label_visibility="collapsed"
+            )
+            
+            # Name input with larger font
+            st.markdown("""
+            <div style="font-size: 1.4rem; margin-bottom: 0.5rem; margin-top: 1rem;">
+            <strong>Full Name (Digital Signature)</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            name = st.text_input(
+                "Full Name",
+                placeholder="John Smith",
+                help="Your full name for research purposes",
+                label_visibility="collapsed"
+            )
+            
+            # Consent checkbox with larger font
+            st.markdown("""
+            <div style="font-size: 1.4rem; margin-top: 2rem;">
+            """, unsafe_allow_html=True)
+            consent_given = st.checkbox(
+                "I have read and agree to the consent form above",
+                help="You must check this box to participate"
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Submit button with larger font
+            st.markdown("""
+            <div style="margin-top: 2.5rem;">
+            """, unsafe_allow_html=True)
+            submitted = st.form_submit_button(
+                "🚀 Register and Start Evaluation",
+                type="primary",
+                use_container_width=True
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            if submitted:
+                if not name or not email:
+                    st.error("❌ Please provide both name and email address.")
+                elif not consent_given:
+                    st.error("❌ You must agree to the consent form to participate.")
+                else:
+                    # Import registration utilities to check email status
+                    try:
+                        from utils.registration import has_email_completed_evaluation, can_email_register
+                        
+                        # Check if email can register
+                        can_register, reason = can_email_register(email)
+                        
+                        if not can_register:
+                            st.error(f"❌ {reason}")
+                            return
+                        
+                        # Check if email already registered in current session
+                        if "tester_registrations" in st.session_state:
+                            if email in st.session_state["tester_registrations"]:
+                                st.error("❌ This email address has already been used for registration. Only one evaluation per email is permitted.")
+                                return
+                        
+                        # Store registration data
+                        if "tester_registrations" not in st.session_state:
+                            st.session_state["tester_registrations"] = {}
+                        
+                        st.session_state["tester_registrations"][email] = {
+                            "name": name,
+                            "email": email,
+                            "consent_given": consent_given,
+                            "registration_timestamp": datetime.now().isoformat(),
+                            "evaluation_completed": False
+                        }
+                        
+                        # Set current user
+                        st.session_state["user_email"] = email
+                        st.session_state["user_name"] = name
+                        st.session_state["user_role"] = "tester"  # Set user role as tester
+                        
+                        st.success("✅ Registration completed successfully!")
+                        st.info("🔄 Redirecting to evaluation...")
+                        st.rerun()
+                        
+                    except ImportError:
+                        st.error("❌ Registration system not available. Please contact the administrator.")
+                        return
+    
+    # Footer with larger font
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #666; font-size: 1.4rem; margin-top: 2rem;">
+    🎓 <strong>Academic Research Study</strong><br>
+    Your responses are anonymized and used for research only. Thank you for participating!
+    </div>
+    """, unsafe_allow_html=True)
 
 def show_evaluation_interface():
     """Main function to display the blind evaluation interface."""
     
     # Check if user is registered
     if not st.session_state.get("user_email"):
-        st.error("❌ Please complete registration before participating in the evaluation.")
+        show_registration_form()
         return
+    
+    # Show clear indicator if flag is set (after question submission)
+    if st.session_state.get("scroll_to_top", False):
+        # Simple success message
+        st.success("✅ Question submitted successfully! Here's your next question:")
+        
+        # Clear the flag
+        st.session_state["scroll_to_top"] = False
     
     # Load evaluation data
     questions, responses = load_evaluation_data()
@@ -985,17 +1293,28 @@ def show_evaluation_interface():
         st.error("❌ Unable to load evaluation data. Please contact the administrator.")
         return
     
-    # Page header
-    st.title("🔍 Blind Evaluation")
+    # Page header with larger font
     st.markdown("""
+    <h1 style="font-size: 2.8rem; margin-bottom: 1.5rem; color: #1f77b4;">
+    🔍 Blind Evaluation
+    </h1>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style="font-size: 1.4rem; line-height: 1.7; margin-bottom: 2rem;">
     Welcome to the blind evaluation! You will evaluate responses from different AI models 
     without knowing which model generated each response.
     
-    **Evaluation Flow:**
-    - You will complete **6 questions per industry**
-    - Start with **Retail** industry, then move to **Finance**
-    - Questions are randomly selected from a pool of 10 per industry
-    """)
+    <h3 style="font-size: 1.6rem; margin: 1.5rem 0 1rem 0; color: #2c3e50;">
+    📋 Evaluation Flow:
+    </h3>
+    <ul style="font-size: 1.3rem; line-height: 1.6;">
+        <li>You will complete <strong>6 questions per industry</strong></li>
+        <li>Start with <strong>Retail</strong> industry, then move to <strong>Finance</strong></li>
+        <li>Questions are randomly selected from a pool of 10 per industry</li>
+    </ul>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Display instructions
     with st.expander("📋 Evaluation Instructions", expanded=False):
@@ -1135,7 +1454,10 @@ def show_evaluation_interface():
                     if key.startswith("ratings_") or key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_"):
                         del st.session_state[key]
                 
-                st.success("✅ Question submitted! Moving to next question...")
+                # Set flag to trigger auto-scroll on next page load
+                st.session_state["scroll_to_top"] = True
+                
+                # Force a rerun to trigger the scroll
                 st.rerun()
     else:
         st.error("❌ No responses available for the selected question.")
