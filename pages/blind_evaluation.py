@@ -19,15 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Handle redirect to home at the very top (before any UI rendering)
-if st.session_state.get("redirect_to_home", False):
-    # Clear redirect flag and session state
-    st.session_state["redirect_to_home"] = False
-    for key in ["user_email", "tester_name", "user_name", "user_role", "evaluation_session", "final_feedback"]:
-        if key in st.session_state:
-            del st.session_state[key]
-    # Use the correct path for main app
-    st.switch_page("app.py")
+# No automatic redirect - let users see completion confirmation
 
 def load_evaluation_data() -> Tuple[Dict, List[Dict]]:
     """
@@ -925,8 +917,48 @@ def display_evaluation_progress(session: Dict):
         </div>
         """, unsafe_allow_html=True)
 
+def show_final_thank_you():
+    """Show final thank you message after evaluation submission."""
+    st.success("✅ **Thank you! Your evaluation has been successfully submitted!**")
+    
+    st.markdown("""
+    ## 🎉 Evaluation Complete!
+    
+    Your responses have been saved securely and will contribute to our research on 
+    comparing free-tier LLMs for business intelligence applications.
+    
+    ### 🙏 Thank You For Your Participation!
+    
+    Your feedback is valuable for advancing AI evaluation methodologies and helping 
+    organizations make better decisions about LLM selection for business use.
+    
+    ---
+    
+    ### 🏠 What's Next?
+    
+    You can now:
+    - **Close this page** - Your evaluation is complete
+    - **Return to homepage** - Click the button below if you'd like to explore other sections
+    """)
+    
+    # Optional navigation back to homepage
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🏠 Return to Homepage", type="secondary", use_container_width=True):
+            # Clear evaluation session data but keep user info for potential future use
+            for key in ["evaluation_session", "final_feedback", "evaluation_submitted"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.switch_page("app.py")
+
 def show_completion_message():
     """Show completion message and collect final feedback when all evaluations are done."""
+    
+    # Check if evaluation has been submitted
+    if st.session_state.get("evaluation_submitted", False):
+        show_final_thank_you()
+        return
+    
     st.success("🎉 **Congratulations! You have completed all evaluations!**")
     
     # Get actual question counts
@@ -1036,9 +1068,9 @@ def show_completion_message():
             tester_email = st.session_state.get("user_email")
             if tester_email:
                 mark_evaluation_completed(tester_email)
-            # Set redirect flag and stop execution
-            st.session_state["redirect_to_home"] = True
-            st.stop()
+            # Mark evaluation as submitted to show completion message
+            st.session_state["evaluation_submitted"] = True
+            st.rerun()
     
 
 
