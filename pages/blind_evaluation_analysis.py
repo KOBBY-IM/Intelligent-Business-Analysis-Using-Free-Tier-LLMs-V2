@@ -37,10 +37,10 @@ def get_actual_model_name(response_id: str, model_mapping: dict = None) -> str:
     
     # Fallback mapping for when model_mapping is not available
     fallback_mapping = {
-        "A": "groq:llama3-70b-8192",
-        "B": "groq:mixtral-8x7b-32768", 
-        "C": "openrouter:anthropic/claude-3-haiku",
-        "D": "openrouter:meta-llama/llama-3-8b-instruct"
+        "A": "llama3-70b-8192",
+        "B": "moonshotai/kimi-k2-instruct", 
+        "C": "mistralai/mistral-7b-instruct",
+        "D": "deepseek/deepseek-r1-0528-qwen3-8b"
     }
     
     return fallback_mapping.get(response_id, f"Model {response_id}")
@@ -80,6 +80,12 @@ def flatten_ratings_data(df):
                             
                             ratings = question_data.get('ratings', {})
                             model_mapping = question_data.get('model_mapping', {})  # Get the model mapping
+                            
+                            # Debug: Show what we found
+                            st.write(f"**Debug for {question_key}:**")
+                            st.write(f"- Ratings keys: {list(ratings.keys()) if ratings else 'None'}")
+                            st.write(f"- Model mapping: {model_mapping}")
+                            st.write("---")
                             
                             if ratings and isinstance(ratings, dict):
                                 has_valid_ratings = False
