@@ -735,36 +735,12 @@ def get_ground_truth_for_question(question: str, industry: str) -> str:
     
     return ground_truth
 
-def collect_evaluation_data() -> Dict:
-    """
-    Collect all evaluation data from session state.
-    
-    Returns:
-        Dictionary containing all evaluation data
-    """
-    evaluation_data = {
-        "tester_email": st.session_state.get("user_email"),
-        "tester_name": st.session_state.get("tester_name"),
-        "evaluation_timestamp": datetime.now(timezone.utc).isoformat(),
-        "current_question": st.session_state.get("current_evaluation_question"),
-        "current_industry": st.session_state.get("current_evaluation_industry"),
-        "ratings": {}
-    }
-    
-    # Collect ratings for each response (A, B, C, D)
-    for response_id in ["A", "B", "C", "D"]:
-        rating_key = f"ratings_{response_id}"
-        if rating_key in st.session_state:
-            evaluation_data["ratings"][response_id] = st.session_state[rating_key]
-    
-    return evaluation_data
-
 def collect_final_evaluation_data() -> Dict:
     """
-    Collect final evaluation data including overall feedback.
+    Collect final evaluation data including overall feedback and all individual question ratings.
     
     Returns:
-        Dictionary containing final evaluation data
+        Dictionary containing comprehensive evaluation data
     """
     # Get evaluation session data
     session = st.session_state.get("evaluation_session", {})
@@ -779,17 +755,21 @@ def collect_final_evaluation_data() -> Dict:
     # Get final feedback
     final_feedback = st.session_state.get("final_feedback", {})
     
+    # Get all accumulated ratings from the session
+    all_ratings = st.session_state.get("all_evaluation_ratings", {})
+    
     evaluation_data = {
         "tester_email": st.session_state.get("user_email"),
         "tester_name": st.session_state.get("tester_name"),
         "evaluation_timestamp": datetime.now(timezone.utc).isoformat(),
-        "evaluation_type": "final_assessment",
+        "evaluation_type": "complete_evaluation",
         "questions_evaluated": {
             "retail_count": retail_count,
             "finance_count": finance_count,
             "total_count": total_count,
             "completed_questions": list(completed_questions)
         },
+        "individual_question_ratings": all_ratings,  # All question-by-question ratings
         "overall_ratings": {
             "overall_quality": final_feedback.get("overall_quality", 0),
             "overall_relevance": final_feedback.get("overall_relevance", 0),
@@ -949,7 +929,7 @@ def show_final_thank_you():
             keys_to_clear = [
                 "user_email", "tester_name", "user_name", "user_role", 
                 "evaluation_session", "final_feedback", "evaluation_submitted",
-                "tester_registrations"
+                "tester_registrations", "all_evaluation_ratings"
             ]
             for key in keys_to_clear:
                 if key in st.session_state:
@@ -1451,15 +1431,33 @@ def show_evaluation_interface():
         display_question_and_responses(current_question, current_industry, shuffled_responses, current_question_index + 1)
         # Process form submission
         if st.session_state.get("form_submitted", False):
-            evaluation_data = collect_evaluation_data()
-            evaluation_data["question_key"] = question_key
-            save_evaluation_data(evaluation_data)
+            # Store ratings for this question in session state (don't save yet)
+            if "all_evaluation_ratings" not in st.session_state:
+                st.session_state["all_evaluation_ratings"] = {}
+            
+            # Collect ratings for current question
+            question_ratings = {}
+            for response_id in ["A", "B", "C", "D"]:
+                rating_key = f"ratings_{response_id}"
+                if rating_key in st.session_state:
+                    question_ratings[response_id] = st.session_state[rating_key]
+            
+            # Store ratings for this specific question
+            st.session_state["all_evaluation_ratings"][question_key] = {
+                "question": current_question,
+                "industry": current_industry,
+                "ratings": question_ratings,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+            
             completed_questions.add(question_key)
             session["current_question_index"] += 1
-            # Clear session state for next evaluation
+            
+            # Clear only the current question's rating inputs for next question
             for key in list(st.session_state.keys()):
-                if key.startswith("ratings_") or key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_"):
+                if key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_"):
                     del st.session_state[key]
+            
             st.session_state["scroll_to_top"] = True
             st.session_state["form_submitted"] = False
             st.rerun()
