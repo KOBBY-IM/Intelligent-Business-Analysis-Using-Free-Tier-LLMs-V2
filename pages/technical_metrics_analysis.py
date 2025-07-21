@@ -594,9 +594,9 @@ else:
             if add_fig:
                 st.plotly_chart(add_fig, use_container_width=True)
             if rate_fig:
-            st.plotly_chart(rate_fig, use_container_width=True)
-        if err_fig:
-            st.plotly_chart(err_fig, use_container_width=True)
+                st.plotly_chart(rate_fig, use_container_width=True)
+            if err_fig:
+                st.plotly_chart(err_fig, use_container_width=True)
 
 # ---- AUTO-REFRESH FUNCTIONALITY ----
 if filters['auto_refresh']:
