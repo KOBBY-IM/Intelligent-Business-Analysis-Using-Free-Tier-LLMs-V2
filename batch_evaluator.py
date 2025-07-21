@@ -345,12 +345,14 @@ def main():
     # Save results
     save_json(all_metrics, OUTPUT_JSON)
     save_csv(all_metrics, OUTPUT_CSV)
-    # Upload to GCS
-    if GCP_CREDENTIALS:
+    print(f"[INFO] Saved batch evaluation data locally: {OUTPUT_JSON}, {OUTPUT_CSV}")
+    # Always attempt to upload to GCS after local save
+    try:
         upload_to_gcs(OUTPUT_JSON, GCS_BUCKET, GCS_JSON_BLOB)
         upload_to_gcs(OUTPUT_CSV, GCS_BUCKET, GCS_CSV_BLOB)
-    else:
-        print("GCP credentials not set. Skipping GCS upload.")
+        print(f"[INFO] Uploaded batch evaluation data to GCS bucket: {GCS_BUCKET}")
+    except Exception as e:
+        print(f"[WARN] Could not upload to GCS: {e}")
     print(f"Batch evaluation complete. {len(all_metrics)} records saved.")
 
 if __name__ == "__main__":
