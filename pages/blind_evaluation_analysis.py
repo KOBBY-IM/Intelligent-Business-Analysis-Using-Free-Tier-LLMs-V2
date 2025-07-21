@@ -54,6 +54,8 @@ def flatten_ratings_data(df):
                             question_base['current_industry'] = question_data.get('industry', '')
                             
                             ratings = question_data.get('ratings', {})
+                            model_mapping = question_data.get('model_mapping', {})  # Get the model mapping
+                            
                             if ratings and isinstance(ratings, dict):
                                 has_valid_ratings = False
                                 for response_id, rating_data in ratings.items():
@@ -64,7 +66,13 @@ def flatten_ratings_data(df):
                                         new_row['relevance'] = rating_data.get('relevance', None) 
                                         new_row['accuracy'] = rating_data.get('accuracy', None)
                                         new_row['uniformity'] = rating_data.get('uniformity', None)
-                                        new_row['llm_model'] = f"Model {response_id}"
+                                        
+                                        # Use actual model name from mapping if available
+                                        if model_mapping and response_id in model_mapping:
+                                            new_row['llm_model'] = model_mapping[response_id]
+                                        else:
+                                            new_row['llm_model'] = f"Model {response_id}"  # Fallback
+                                            
                                         flattened_rows.append(new_row)
                                         has_valid_ratings = True
                                 
@@ -475,8 +483,6 @@ else:
         complete_ratings = filtered_human[filtered_human['quality'].notna()] if 'quality' in filtered_human.columns else pd.DataFrame()
         
         if not complete_ratings.empty and 'llm_model' in complete_ratings.columns:
-            st.write(f"**Data Status:** Found {len(complete_ratings)} complete evaluations for analysis")
-            
             # 1. Radar Chart
             if available_ratings:
                 radar_fig = create_radar_chart(complete_ratings, filters['llm_model'], available_ratings)
@@ -556,14 +562,6 @@ else:
                     performance_data.append(scores)
                 
                 perf_df = pd.DataFrame(performance_data)
-                
-                # Debug information
-                st.write(f"**Debug Info:** Found {len(complete_ratings['llm_model'].unique())} unique models")
-                st.write(f"**Debug Info:** Performance data has {len(performance_data)} entries")
-                if not perf_df.empty:
-                    st.write(f"**Debug Info:** Performance DataFrame columns: {list(perf_df.columns)}")
-                else:
-                    st.write("**Debug Info:** Performance DataFrame is empty")
                 
                 # Create performance comparison chart only if we have data
                 if not perf_df.empty and 'llm_model' in perf_df.columns:

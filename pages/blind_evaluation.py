@@ -64,7 +64,13 @@ def create_sample_responses(questions: Dict) -> List[Dict]:
         List of sample response dictionaries
     """
     sample_responses = []
-    llm_models = ["Model A", "Model B", "Model C", "Model D"]
+    # Use realistic LLM model names for proper analysis
+    llm_models = [
+        "groq:llama3-70b-8192",
+        "groq:mixtral-8x7b-32768", 
+        "openrouter:anthropic/claude-3-haiku",
+        "openrouter:meta-llama/llama-3-8b-instruct"
+    ]
     
     for industry, question_list in questions.items():
         for question in question_list:
@@ -72,27 +78,26 @@ def create_sample_responses(questions: Dict) -> List[Dict]:
                 # Create more varied and realistic sample responses
                 if industry == "retail":
                     response_templates = [
-                        f"Based on our retail analysis, {model} suggests that the key factors affecting this metric include customer behavior patterns, seasonal trends, and market competition. The data indicates a need for strategic adjustments in pricing and inventory management.",
-                        f"{model} analysis shows that this retail question requires examining multiple data points including sales velocity, customer demographics, and regional performance variations. The insights suggest focusing on high-performing segments.",
-                        f"From a retail perspective, {model} identifies that this business challenge involves understanding customer preferences, market positioning, and operational efficiency. The recommended approach includes data-driven decision making."
+                        "Based on our retail analysis, the key factors affecting this metric include customer behavior patterns, seasonal trends, and market competition. The data indicates a need for strategic adjustments in pricing and inventory management.",
+                        "This retail question requires examining multiple data points including sales velocity, customer demographics, and regional performance variations. The insights suggest focusing on high-performing segments.",
+                        "From a retail perspective, this business challenge involves understanding customer preferences, market positioning, and operational efficiency. The recommended approach includes data-driven decision making."
                     ]
                 else:  # finance
                     response_templates = [
-                        f"Financial analysis by {model} indicates that this metric is influenced by market volatility, regulatory changes, and economic indicators. The model suggests monitoring key risk factors and adjusting portfolio strategies accordingly.",
-                        f"{model} financial assessment reveals that this question requires analyzing market trends, risk exposure, and performance benchmarks. The findings suggest implementing robust risk management protocols.",
-                        f"From a finance standpoint, {model} determines that this analysis involves examining market correlations, volatility patterns, and regulatory impacts. The recommendations focus on strategic positioning and risk mitigation."
+                        "Financial analysis indicates that this metric is influenced by market volatility, regulatory changes, and economic indicators. The model suggests monitoring key risk factors and adjusting portfolio strategies accordingly.",
+                        "This financial assessment reveals that this question requires analyzing market trends, risk exposure, and performance benchmarks. The findings suggest implementing robust risk management protocols.",
+                        "From a finance standpoint, this analysis involves examining market correlations, volatility patterns, and regulatory impacts. The recommendations focus on strategic positioning and risk mitigation."
                     ]
                 
-                # Select a random template and customize it
+                # Select a random template (no need to replace model name)
                 import random
-                template = random.choice(response_templates)
-                response = template.replace("{model}", model)
+                response = random.choice(response_templates)
                 
                 sample_responses.append({
                     "industry": industry,
                     "question": question,
                     "llm_provider": f"provider_{i+1}",
-                    "llm_model": model,
+                    "llm_model": llm_models[i],  # Use actual model name
                     "response": response,
                     "context": [f"Sample {industry} context 1", f"Sample {industry} context 2"],
                     "prompt": f"Sample prompt for {question}",
@@ -1437,16 +1442,26 @@ def show_evaluation_interface():
             
             # Collect ratings for current question
             question_ratings = {}
+            model_mapping = {}  # Map anonymous ID to actual model
+            
             for response_id in ["A", "B", "C", "D"]:
                 rating_key = f"ratings_{response_id}"
                 if rating_key in st.session_state:
                     question_ratings[response_id] = st.session_state[rating_key]
             
-            # Store ratings for this specific question
+            # Create mapping from anonymous IDs to actual models
+            for response in shuffled_responses:
+                anonymous_id = response.get("anonymous_id")
+                actual_model = response.get("llm_model", "Unknown Model")
+                if anonymous_id:
+                    model_mapping[anonymous_id] = actual_model
+            
+            # Store ratings for this specific question with model mapping
             st.session_state["all_evaluation_ratings"][question_key] = {
                 "question": current_question,
                 "industry": current_industry,
                 "ratings": question_ratings,
+                "model_mapping": model_mapping,  # Preserve the mapping
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             
