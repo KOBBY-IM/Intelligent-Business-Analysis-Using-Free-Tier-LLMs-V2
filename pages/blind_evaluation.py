@@ -64,12 +64,12 @@ def create_sample_responses(questions: Dict) -> List[Dict]:
         List of sample response dictionaries
     """
     sample_responses = []
-    # Use realistic LLM model names for proper analysis
+    # Use realistic LLM model names that match the pregenerated_responses.json
     llm_models = [
-        "groq:llama3-70b-8192",
-        "groq:mixtral-8x7b-32768", 
-        "openrouter:anthropic/claude-3-haiku",
-        "openrouter:meta-llama/llama-3-8b-instruct"
+        "llama3-70b-8192",
+        "moonshotai/kimi-k2-instruct", 
+        "mistralai/mistral-7b-instruct",
+        "deepseek/deepseek-r1-0528-qwen3-8b"
     ]
     
     for industry, question_list in questions.items():
