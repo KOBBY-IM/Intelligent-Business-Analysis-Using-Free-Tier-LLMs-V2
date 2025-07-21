@@ -297,46 +297,48 @@ def display_question_and_responses(question: str, industry: str, responses: List
         responses: List of responses to display (should be shuffled)
         question_number: The current question number (optional)
     """
-    # Question header with smaller font
+    # Question header
     if question_number is not None:
         st.markdown(f"""
-        <h2 style="font-size: 1.6rem; margin-bottom: 1rem; color: #1f77b4;">
+        <h2 style="font-size: 1.4rem; margin-bottom: 0.8rem; color: #1f77b4;">
         🎯 Question {question_number} of 6 ({industry.title()} Industry)
         </h2>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <h2 style="font-size: 1.6rem; margin-bottom: 1rem; color: #1f77b4;">
+        <h2 style="font-size: 1.4rem; margin-bottom: 0.8rem; color: #1f77b4;">
         🎯 Question ({industry.title()} Industry)
         </h2>
         """, unsafe_allow_html=True)
     
-    # Question text with smaller, more compact font and box
-    st.markdown(f"""
-    <div style="background-color: #f8f9fa; border: 2px solid #1f77b4; border-radius: 10px; padding: 15px; margin: 20px 0;">
-        <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: #2c3e50;">
-        📋 Business Question:
-        </h3>
-        <p style="font-size: 1.1rem; line-height: 1.4; font-weight: 500; color: #34495e;">
-        {question}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Side-by-side layout for question and ground truth
+    question_col, ground_truth_col = st.columns([1, 1], gap="medium")
     
-    st.markdown("---")
+    with question_col:
+        st.markdown(f"""
+        <div style="background-color: #f8f9fa; border: 1px solid #1f77b4; border-radius: 8px; padding: 15px; height: 100%;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #2c3e50;">
+            📋 Business Question
+            </h3>
+            <p style="font-size: 1.0rem; line-height: 1.4; font-weight: 500; color: #34495e;">
+            {question}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Display ground truth information to aid evaluation
-    st.markdown("""
-    <h3 style="font-size: 1.6rem; margin-bottom: 1rem; color: #27ae60;">
-    🎯 Ground Truth Answer & Context
-    </h3>
-    """, unsafe_allow_html=True)
-    ground_truth = get_ground_truth_for_question(question, industry)
-    st.markdown(f"""
-    <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 8px; padding: 20px; font-size: 1.5rem; line-height: 1.7;">
-    {ground_truth}
-    </div>
-    """, unsafe_allow_html=True)
+    with ground_truth_col:
+        ground_truth = get_ground_truth_for_question(question, industry)
+        st.markdown(f"""
+        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 8px; padding: 15px; height: 100%; max-height: 300px; overflow-y: auto;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #27ae60;">
+            🎯 Ground Truth & Context
+            </h3>
+            <div style="font-size: 0.9rem; line-height: 1.4;">
+            {ground_truth}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
     st.markdown("---")
     
     # Display responses in a 2x2 grid for compactness
@@ -878,57 +880,50 @@ def mark_evaluation_completed(email: str):
         st.error(f"Error marking evaluation as completed: {str(e)}")
 
 def display_evaluation_progress(session: Dict):
-    """Display progress through the evaluation."""
+    """Display progress through the evaluation in sidebar format."""
     st.markdown("""
-    <h3 style="font-size: 1.3rem; margin-bottom: 1rem; color: #2c3e50;">
-    📊 Evaluation Progress
+    <h3 style="font-size: 1.2rem; margin-bottom: 0.8rem; color: #2c3e50;">
+    📊 Progress
     </h3>
     """, unsafe_allow_html=True)
     
-    # Progress bars
-    col1, col2 = st.columns(2)
+    # Compact progress display for sidebar
+    retail_completed = len([q for q in session["completed_questions"] if q.startswith("retail:")])
+    retail_total = len(session["selected_questions"].get("retail", []))
+    retail_progress = retail_completed / retail_total if retail_total > 0 else 0
     
-    with col1:
-        retail_completed = len([q for q in session["completed_questions"] if q.startswith("retail:")])
-        retail_total = len(session["selected_questions"].get("retail", []))
-        retail_progress = retail_completed / retail_total if retail_total > 0 else 0
-        st.progress(retail_progress)
-        st.markdown(f"""
-        <div style="font-size: 1.0rem; margin-top: 0.3rem;">
-        <strong>🛒 Retail</strong>: {retail_completed}/{retail_total} completed
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("**🛒 Retail Industry**")
+    st.progress(retail_progress)
+    st.markdown(f"<small>{retail_completed}/{retail_total} completed</small>", unsafe_allow_html=True)
     
-    with col2:
-        finance_completed = len([q for q in session["completed_questions"] if q.startswith("finance:")])
-        finance_total = len(session["selected_questions"].get("finance", []))
-        finance_progress = finance_completed / finance_total if finance_total > 0 else 0
-        st.progress(finance_progress)
-        st.markdown(f"""
-        <div style="font-size: 1.0rem; margin-top: 0.3rem;">
-        <strong>💰 Finance</strong>: {finance_completed}/{finance_total} completed
-        </div>
-        """, unsafe_allow_html=True)
+    finance_completed = len([q for q in session["completed_questions"] if q.startswith("finance:")])
+    finance_total = len(session["selected_questions"].get("finance", []))
+    finance_progress = finance_completed / finance_total if finance_total > 0 else 0
     
-    # Current status
+    st.markdown("**💰 Finance Industry**")
+    st.progress(finance_progress)
+    st.markdown(f"<small>{finance_completed}/{finance_total} completed</small>", unsafe_allow_html=True)
+    
+    # Current status - compact version for sidebar
     current_industry = session["current_industry"]
     current_question_index = session["current_question_index"]
     current_total = len(session["selected_questions"].get(current_industry, []))
     
+    st.markdown("---")
+    st.markdown("**📍 Current Question**")
+    
     if current_industry == "retail":
         st.markdown(f"""
-        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 1.1rem;">
-        🛒 <strong>Currently: Retail Industry</strong> (Question {current_question_index + 1}/{current_total})
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; padding: 8px; font-size: 0.9rem; text-align: center;">
+        🛒 Retail<br>Q{current_question_index + 1}/{current_total}
         </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 1.1rem;">
-        💰 <strong>Currently: Finance Industry</strong> (Question {current_question_index + 1}/{current_total})
+        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 4px; padding: 8px; font-size: 0.9rem; text-align: center;">
+        💰 Finance<br>Q{current_question_index + 1}/{current_total}
         </div>
         """, unsafe_allow_html=True)
-    
-    st.markdown("---")
 
 def show_completion_message():
     """Show completion message and collect final feedback when all evaluations are done."""
@@ -1298,13 +1293,16 @@ def show_evaluation_interface():
     </div>
     """, unsafe_allow_html=True)
     
-    # Display instructions
-    with st.expander("📋 Evaluation Instructions", expanded=False):
-        display_evaluation_instructions()
+    # Side-by-side expandable sections for instructions and dataset overview
+    instr_col, data_col = st.columns([1, 1], gap="medium")
     
-    # Display dataset overview
-    with st.expander("📊 Dataset Overview", expanded=False):
-        display_dataset_overview()
+    with instr_col:
+        with st.expander("📋 Evaluation Instructions", expanded=False):
+            display_evaluation_instructions()
+    
+    with data_col:
+        with st.expander("📊 Dataset Overview", expanded=False):
+            display_dataset_overview()
     
     # Initialize evaluation session state
     if "evaluation_session" not in st.session_state:
@@ -1399,8 +1397,9 @@ def show_evaluation_interface():
         session["current_question_index"] += 1
         st.rerun()
     
-    # Display progress
-    display_evaluation_progress(session)
+    # Display progress in sidebar
+    with st.sidebar:
+        display_evaluation_progress(session)
     
     # Get responses for current question
     question_responses = get_responses_for_question(current_question, current_industry, responses)
