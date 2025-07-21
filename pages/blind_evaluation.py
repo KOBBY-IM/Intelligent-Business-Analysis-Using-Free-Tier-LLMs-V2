@@ -1033,12 +1033,7 @@ def show_completion_message():
             if tester_email:
                 mark_evaluation_completed(tester_email)
             # Redirect to home app after final assessment
-            try:
-                st.switch_page("/")
-            except Exception:
-                st.experimental_set_query_params()
-                st.success("✅ Final assessment submitted! Redirecting to home...")
-                st.stop()
+            st.switch_page("/")
     
     # Option to reset for testing (remove in production)
     if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
@@ -1260,6 +1255,15 @@ def show_registration_form():
     """, unsafe_allow_html=True)
 
 def show_evaluation_interface():
+    # Auto-scroll to top after question submit
+    if st.session_state.get("scroll_to_top", False):
+        st.markdown(
+            """<script>
+            window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
+            </script>""",
+            unsafe_allow_html=True,
+        )
+        st.session_state["scroll_to_top"] = False
     """Main function to display the blind evaluation interface."""
     
     # Check if user is registered
