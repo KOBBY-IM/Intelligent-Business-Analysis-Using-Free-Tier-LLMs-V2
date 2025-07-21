@@ -51,7 +51,7 @@ def main():
     current_role = get_current_user_role()
     
     # Build navigation options based on user role
-    nav_options = ["Home", "System Status"]
+    nav_options = ["Home"]
     
     # Add role-specific pages
     if current_role == "tester" or current_role == "admin":
@@ -108,8 +108,6 @@ def main():
     # Route to appropriate page with access control
     if page == "Home":
         show_home()
-    elif page == "System Status":
-        show_system_status()
     elif page == "Admin Login":
         show_admin_login_page()
     elif page == "Blind Evaluation":
@@ -167,10 +165,10 @@ def show_home():
         - **Automated Technical Assessment**: Continuous monitoring of latency, throughput, 
           and reliability metrics
         
-        **Retrieval-Augmented Generation (RAG):**
-        - Responses grounded in real business datasets
-        - 70% context coverage target for factual accuracy
-        - Industry-specific knowledge base integration
+                 **Retrieval-Augmented Generation (RAG):**
+         - Responses grounded in real business datasets
+         - Context-driven answer generation for improved relevance
+         - Industry-specific knowledge base integration
         
         **Data-Driven Insights:**
         - Real e-commerce shopping trends dataset (3,900+ records)
@@ -182,11 +180,10 @@ def show_home():
         st.markdown("""
         ### 🎯 Key Features
         
-        **LLM Providers Evaluated:**
-        - **Groq**: High-speed inference optimization
-        - **Google Gemini**: Advanced reasoning capabilities  
-        - **OpenRouter**: Multi-model access platform
-        - **Four distinct models** selected for comprehensive comparison
+                 **LLM Providers Evaluated:**
+         - **Groq**: High-speed inference optimization
+         - **OpenRouter**: Multi-model access platform
+         - **Four distinct models** selected for comprehensive comparison
         
         **Evaluation Focus Areas:**
         - Response quality and clarity
@@ -219,7 +216,7 @@ def show_home():
         
         if st.button("🔍 Start Blind Evaluation", type="primary", use_container_width=True):
             st.session_state["current_page"] = "Blind Evaluation"
-            st.rerun()
+            st.switch_page("pages/blind_evaluation.py")
     
     # Research significance
     st.markdown("---")
@@ -252,113 +249,7 @@ def show_home():
     </div>
     """, unsafe_allow_html=True)
 
-def show_system_status():
-    """Display system status and configuration check"""
-    
-    st.header("⚙️ System Status")
-    
-    # Environment checks
-    st.subheader("🔧 Environment Configuration")
-    
-    # Check Python version
-    import sys
-    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    st.success(f"✅ Python Version: {python_version}")
-    
-    # Check Streamlit version
-    st.success(f"✅ Streamlit Version: {st.__version__}")
-    
-    # Enhanced secrets configuration check
-    st.subheader("🔐 Secrets Configuration")
-    if hasattr(st, 'secrets'):
-        st.success("✅ Secrets management is available")
-        
-        # Debug: Check specific secrets (without exposing values)
-        try:
-            # Check if auth section exists
-            if hasattr(st.secrets, 'auth'):
-                st.success("✅ Auth section found in secrets")
-                
-                # Check individual auth secrets
-                if hasattr(st.secrets.auth, 'admin_password'):
-                    st.success("✅ Admin password configured")
-                else:
-                    st.error("❌ Admin password NOT configured in secrets")
-                
-                if hasattr(st.secrets.auth, 'tester_access_token'):
-                    st.success("✅ Tester access token configured")
-                else:
-                    st.error("❌ Tester access token NOT configured in secrets")
-            else:
-                st.error("❌ Auth section NOT found in secrets")
-                st.markdown("**You need to configure secrets in Streamlit Cloud dashboard**")
-        except Exception as e:
-            st.error(f"❌ Error checking secrets: {str(e)}")
-            
-        # Show available secret sections for debugging
-        try:
-            available_sections = list(st.secrets.keys()) if hasattr(st.secrets, 'keys') else []
-            if available_sections:
-                st.info(f"📋 Available secret sections: {', '.join(available_sections)}")
-            else:
-                st.warning("⚠️ No secret sections found")
-        except:
-            st.warning("⚠️ Cannot enumerate secret sections")
-    else:
-        st.error("❌ Secrets management not available")
-    
-    # Deployment environment check
-    st.subheader("☁️ Deployment Environment")
-    if os.getenv('STREAMLIT_SHARING_MODE'):
-        st.success("✅ Running on Streamlit Cloud")
-        st.info("💡 Configure secrets in the Streamlit Cloud dashboard")
-    else:
-        st.info("🏠 Running locally - secrets loaded from .streamlit/secrets.toml")
-    
-    # Future API integration status (placeholder)
-    st.subheader("🤖 LLM API Status")
-    st.info("📋 LLM integrations will be configured in upcoming releases")
-    
-    # Memory and resource indicators
-    st.subheader("💾 Session State Status")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("**Authentication Status:**")
-        current_role = get_current_user_role()
-        current_email = get_current_user_email()
-        
-        if current_role:
-            st.success(f"✅ Logged in as: {current_role}")
-            if current_email:
-                st.info(f"📧 Email: {current_email}")
-        else:
-            st.info("ℹ️ Not authenticated")
-        
-        st.markdown("**Current Page:**")
-        current_page = st.session_state.get("current_page", "Not set")
-        st.info(f"📄 Page: {current_page}")
-    
-    with col2:
-        st.markdown("**Registration Data:**")
-        registrations = st.session_state.get("tester_registrations", {})
-        st.info(f"👥 Registered testers: {len(registrations)}")
-        
-        st.markdown("**Session Keys:**")
-        session_keys = list(st.session_state.keys())
-        st.info(f"🔑 Active session keys: {len(session_keys)}")
-        
-        # Show session persistence info
-        if st.checkbox("🔍 Show detailed session state", help="For debugging purposes"):
-            with st.expander("Session State Details"):
-                filtered_state = {k: v for k, v in st.session_state.items() 
-                                if not k.startswith('_') and k != 'tester_registrations'}
-                st.json(filtered_state)
-    
-    st.markdown("---")
-    st.subheader("💾 Resource Status")
-    st.info("📊 Resource monitoring will be implemented for production deployment")
+
 
 def show_admin_login_page():
     """Display admin login page"""
