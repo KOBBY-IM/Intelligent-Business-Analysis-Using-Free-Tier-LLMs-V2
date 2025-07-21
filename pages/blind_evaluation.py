@@ -1028,26 +1028,11 @@ def show_completion_message():
             # Collect and save final evaluation data
             evaluation_data = collect_final_evaluation_data()
             save_evaluation_data(evaluation_data)
-            
             # Mark evaluation as completed
             tester_email = st.session_state.get("user_email")
             if tester_email:
                 mark_evaluation_completed(tester_email)
-            
-            st.success("✅ Final assessment submitted successfully!")
-            st.markdown("""
-    ### 📊 What Happens Next
-    
-            Your comprehensive evaluation has been saved and will be used for:
-    - **Performance analysis** of different AI models
-    - **Comparative research** between LLM providers
-    - **Quality assessment** of business analysis capabilities
-            - **Improvement recommendations** for AI business intelligence tools
-    
-    Thank you for your valuable contribution to this research!
-    """)
-            
-            # Set redirect flag and stop script for safe rerun
+            # Set redirect flag and stop script for safe rerun (before any success messages)
             st.session_state["redirect_to_start"] = True
             st.stop()
     
@@ -1215,17 +1200,17 @@ def show_registration_form():
                 elif not consent_given:
                     st.error("❌ You must agree to the consent form to participate.")
                 else:
-                    # Import registration utilities to check email status
                     try:
                         from utils.registration import has_email_completed_evaluation, can_email_register
-                        
+                        # Robustly enforce one evaluation per email
+                        if has_email_completed_evaluation(email):
+                            st.error("❌ This email address has already completed an evaluation. Only one evaluation per email is permitted.")
+                            return
                         # Check if email can register
                         can_register, reason = can_email_register(email)
-                        
                         if not can_register:
                             st.error(f"❌ {reason}")
                             return
-                        
                         # Check if email already registered in current session
                         if "tester_registrations" in st.session_state:
                             if email in st.session_state["tester_registrations"]:
