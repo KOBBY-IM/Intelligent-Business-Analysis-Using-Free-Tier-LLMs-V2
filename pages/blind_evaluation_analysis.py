@@ -36,6 +36,8 @@ def get_actual_model_name(response_id: str, model_mapping: dict = None) -> str:
         return model_mapping[response_id]
     
     # Fallback mapping for when model_mapping is not available
+    # NOTE: This is a best-guess fallback since responses are shuffled randomly
+    # The actual mapping can vary between evaluation sessions
     fallback_mapping = {
         "A": "llama3-70b-8192",
         "B": "moonshotai/kimi-k2-instruct", 
@@ -44,6 +46,31 @@ def get_actual_model_name(response_id: str, model_mapping: dict = None) -> str:
     }
     
     return fallback_mapping.get(response_id, f"Model {response_id}")
+
+def detect_model_from_responses(responses_data: list) -> dict:
+    """
+    Try to detect actual model mapping from response data structure.
+    
+    Args:
+        responses_data: List of response objects from evaluation session
+    
+    Returns:
+        Dictionary mapping anonymous_id to actual model name
+    """
+    model_mapping = {}
+    
+    if not responses_data or not isinstance(responses_data, list):
+        return model_mapping
+    
+    for response in responses_data:
+        if isinstance(response, dict):
+            anonymous_id = response.get("anonymous_id")
+            llm_model = response.get("llm_model")
+            
+            if anonymous_id and llm_model:
+                model_mapping[anonymous_id] = llm_model
+    
+    return model_mapping
 
 def flatten_ratings_data(df):
     """
@@ -81,11 +108,11 @@ def flatten_ratings_data(df):
                             ratings = question_data.get('ratings', {})
                             model_mapping = question_data.get('model_mapping', {})  # Get the model mapping
                             
-                            # Debug: Show what we found
-                            st.write(f"**Debug for {question_key}:**")
-                            st.write(f"- Ratings keys: {list(ratings.keys()) if ratings else 'None'}")
-                            st.write(f"- Model mapping: {model_mapping}")
-                            st.write("---")
+                            # Try to extract model mapping from the evaluation session if not found
+                            if not model_mapping and 'evaluation_session' in base_data:
+                                session_data = base_data.get('evaluation_session', {})
+                                selected_responses = session_data.get('selected_responses', [])
+                                model_mapping = detect_model_from_responses(selected_responses)
                             
                             if ratings and isinstance(ratings, dict):
                                 has_valid_ratings = False
