@@ -923,7 +923,6 @@ def display_evaluation_progress(session: Dict):
 
 def show_completion_message():
     """Show completion message and collect final feedback when all evaluations are done."""
-    st.balloons()
     st.success("🎉 **Congratulations! You have completed all evaluations!**")
     
     # Get actual question counts
@@ -1048,13 +1047,9 @@ def show_completion_message():
     Thank you for your valuable contribution to this research!
     """)
             
-            # Redirect to start page after short delay
-            import time
-            time.sleep(2)
-            for key in ["user_email", "tester_name", "user_name", "user_role", "evaluation_session", "final_feedback"]:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.experimental_rerun()
+            # Set redirect flag and stop script for safe rerun
+            st.session_state["redirect_to_start"] = True
+            st.stop()
     
     # Option to reset for testing (remove in production)
     if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
@@ -1456,4 +1451,11 @@ def show_evaluation_interface():
 
 # Main execution
 if __name__ == "__main__":
+    # At the very top of the file, after imports and before any UI rendering:
+    if st.session_state.get("redirect_to_start"):
+        for key in ["user_email", "tester_name", "user_name", "user_role", "evaluation_session", "final_feedback", "redirect_to_start"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.experimental_rerun()
+
     show_evaluation_interface() 
