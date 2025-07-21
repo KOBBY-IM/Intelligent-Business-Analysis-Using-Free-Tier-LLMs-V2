@@ -474,13 +474,22 @@ else:
         # Check if we have complete rating data for visualizations
         complete_ratings = filtered_human[filtered_human['quality'].notna()] if 'quality' in filtered_human.columns else pd.DataFrame()
         
-        if not complete_ratings.empty:
+        if not complete_ratings.empty and 'llm_model' in complete_ratings.columns:
+            st.write(f"**Data Status:** Found {len(complete_ratings)} complete evaluations for analysis")
+            
             # 1. Radar Chart
-            if 'llm_model' in complete_ratings.columns and available_ratings:
+            if available_ratings:
                 radar_fig = create_radar_chart(complete_ratings, filters['llm_model'], available_ratings)
                 if radar_fig:
                     st.plotly_chart(radar_fig, use_container_width=True)
+        else:
+            st.warning("⚠️ No complete rating data available for advanced visualizations. This could happen if:")
+            st.write("- No evaluations have been completed yet")
+            st.write("- All ratings are empty/null")
+            st.write("- Data structure doesn't match expected format")
+            st.stop()  # Exit early if no complete data
         
+        if not complete_ratings.empty:
             # 2. Enhanced Boxplots with Confidence Intervals
             if available_ratings:
                 st.write("**Rating Distributions with Confidence Intervals:**")
@@ -548,24 +557,42 @@ else:
                 
                 perf_df = pd.DataFrame(performance_data)
                 
-                # Create performance comparison chart
-                fig = go.Figure()
-                for rating_col in available_ratings:
-                    fig.add_trace(go.Bar(
-                        name=rating_col,
-                        x=perf_df['llm_model'],
-                        y=perf_df[rating_col],
-                        text=perf_df[rating_col].round(2),
-                        textposition='auto',
-                    ))
+                # Debug information
+                st.write(f"**Debug Info:** Found {len(complete_ratings['llm_model'].unique())} unique models")
+                st.write(f"**Debug Info:** Performance data has {len(performance_data)} entries")
+                if not perf_df.empty:
+                    st.write(f"**Debug Info:** Performance DataFrame columns: {list(perf_df.columns)}")
+                else:
+                    st.write("**Debug Info:** Performance DataFrame is empty")
                 
-                fig.update_layout(
-                    title="LLM Performance Comparison by Rating Category",
-                    xaxis_title="LLM Model",
-                    yaxis_title="Average Rating",
-                    barmode='group'
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                # Create performance comparison chart only if we have data
+                if not perf_df.empty and 'llm_model' in perf_df.columns:
+                    fig = go.Figure()
+                    for rating_col in available_ratings:
+                        if rating_col in perf_df.columns:
+                            fig.add_trace(go.Bar(
+                                name=rating_col,
+                                x=perf_df['llm_model'],
+                                y=perf_df[rating_col],
+                                text=perf_df[rating_col].round(2),
+                                textposition='auto',
+                            ))
+                    
+                    fig.update_layout(
+                        title="LLM Performance Comparison by Rating Category",
+                        xaxis_title="LLM Model",
+                        yaxis_title="Average Rating",
+                        barmode='group',
+                        height=500
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Display performance summary table
+                    st.write("**Performance Summary:**")
+                    st.dataframe(perf_df.round(2), use_container_width=True)
+                else:
+                    st.warning("⚠️ No performance data available for comparison.")
         else:
             # Show alternative visualizations when we don't have complete rating data
             st.info("""
