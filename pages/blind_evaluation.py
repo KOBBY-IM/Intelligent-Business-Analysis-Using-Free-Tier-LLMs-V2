@@ -880,7 +880,7 @@ def mark_evaluation_completed(email: str):
 def display_evaluation_progress(session: Dict):
     """Display progress through the evaluation."""
     st.markdown("""
-    <h3 style="font-size: 1.8rem; margin-bottom: 1.5rem; color: #2c3e50;">
+    <h3 style="font-size: 1.3rem; margin-bottom: 1rem; color: #2c3e50;">
     📊 Evaluation Progress
     </h3>
     """, unsafe_allow_html=True)
@@ -894,8 +894,8 @@ def display_evaluation_progress(session: Dict):
         retail_progress = retail_completed / retail_total if retail_total > 0 else 0
         st.progress(retail_progress)
         st.markdown(f"""
-        <div style="font-size: 1.3rem; margin-top: 0.5rem;">
-        <strong>🛒 Retail Industry</strong>: {retail_completed}/{retail_total} questions completed
+        <div style="font-size: 1.0rem; margin-top: 0.3rem;">
+        <strong>🛒 Retail</strong>: {retail_completed}/{retail_total} completed
         </div>
         """, unsafe_allow_html=True)
     
@@ -905,8 +905,8 @@ def display_evaluation_progress(session: Dict):
         finance_progress = finance_completed / finance_total if finance_total > 0 else 0
         st.progress(finance_progress)
         st.markdown(f"""
-        <div style="font-size: 1.3rem; margin-top: 0.5rem;">
-        <strong>💰 Finance Industry</strong>: {finance_completed}/{finance_total} questions completed
+        <div style="font-size: 1.0rem; margin-top: 0.3rem;">
+        <strong>💰 Finance</strong>: {finance_completed}/{finance_total} completed
         </div>
         """, unsafe_allow_html=True)
     
@@ -917,14 +917,14 @@ def display_evaluation_progress(session: Dict):
     
     if current_industry == "retail":
         st.markdown(f"""
-        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 1.4rem;">
-        🛒 <strong>Currently evaluating: Retail Industry</strong> (Question {current_question_index + 1}/{current_total})
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 1.1rem;">
+        🛒 <strong>Currently: Retail Industry</strong> (Question {current_question_index + 1}/{current_total})
         </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 1.4rem;">
-        💰 <strong>Currently evaluating: Finance Industry</strong> (Question {current_question_index + 1}/{current_total})
+        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 1.1rem;">
+        💰 <strong>Currently: Finance Industry</strong> (Question {current_question_index + 1}/{current_total})
         </div>
         """, unsafe_allow_html=True)
     
@@ -1284,26 +1284,17 @@ def show_evaluation_interface():
         st.error("❌ Unable to load evaluation data. Please contact the administrator.")
         return
     
-    # Page header with larger font
+    # Compact page header
     st.markdown("""
-    <h1 style="font-size: 2.8rem; margin-bottom: 1.5rem; color: #1f77b4;">
+    <h1 style="font-size: 1.8rem; margin-bottom: 0.8rem; color: #1f77b4;">
     🔍 Blind Evaluation
     </h1>
     """, unsafe_allow_html=True)
     
     st.markdown("""
-    <div style="font-size: 1.4rem; line-height: 1.7; margin-bottom: 2rem;">
-    Welcome to the blind evaluation! You will evaluate responses from different AI models 
-    without knowing which model generated each response.
-    
-    <h3 style="font-size: 1.6rem; margin: 1.5rem 0 1rem 0; color: #2c3e50;">
-    📋 Evaluation Flow:
-    </h3>
-    <ul style="font-size: 1.3rem; line-height: 1.6;">
-        <li>You will complete <strong>6 questions per industry</strong></li>
-        <li>Start with <strong>Retail</strong> industry, then move to <strong>Finance</strong></li>
-        <li>Questions are randomly selected from a pool of 10 per industry</li>
-    </ul>
+    <div style="font-size: 1.0rem; line-height: 1.4; margin-bottom: 1rem; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 4px solid #1f77b4;">
+    <strong>Evaluate AI responses without knowing which model generated each.</strong><br>
+    Complete 6 questions per industry: <strong>Retail</strong> → <strong>Finance</strong> (randomly selected from available questions)
     </div>
     """, unsafe_allow_html=True)
     
