@@ -471,14 +471,65 @@ class DataStore:
         return pd.DataFrame(rows)
     
     def get_storage_status(self) -> Dict[str, Any]:
-        """Get status information about the data store."""
-        return {
-            'storage_type': self.storage_type,
-            'gcs_available': GOOGLE_CLOUD_AVAILABLE,
-            'gdrive_available': GOOGLE_DRIVE_AVAILABLE,
-            'gcs_configured': self.storage_client is not None,
-            'gdrive_configured': hasattr(self, 'drive_folder_id') and self.drive_folder_id is not None
+        """Get current storage configuration and status."""
+        status = {
+            "storage_type": self.storage_type,
+            "available_backends": {
+                "google_cloud": GOOGLE_CLOUD_AVAILABLE,
+                "google_drive": GOOGLE_DRIVE_AVAILABLE
+            },
+            "timestamp": datetime.utcnow().isoformat()
         }
+        
+        if self.storage_type == "gcs" and self.storage_client:
+            try:
+                # Test bucket access
+                bucket = self.storage_client.bucket(self.bucket_name)
+                status["gcs_bucket"] = self.bucket_name
+                status["gcs_accessible"] = bucket.exists()
+            except Exception as e:
+                status["gcs_accessible"] = False
+                status["gcs_error"] = str(e)
+        
+        return status
+
+    def load_latest_batch_metrics(self) -> Dict[str, Any]:
+        """Load the latest batch evaluation metrics from storage."""
+        try:
+            if self.storage_type == "gcs" and self.storage_client:
+                bucket = self.storage_client.bucket(self.bucket_name)
+                
+                # Try to load JSON first
+                json_blob = bucket.blob("batch_eval_metrics.json")
+                if json_blob.exists():
+                    json_content = json_blob.download_as_text()
+                    return json.loads(json_content)
+                
+                # Fallback to CSV if JSON not available
+                csv_blob = bucket.blob("batch_eval_metrics.csv")
+                if csv_blob.exists():
+                    csv_content = csv_blob.download_as_text()
+                    df = pd.read_csv(StringIO(csv_content))
+                    return df.to_dict('records')
+                
+            elif self.storage_type == "local":
+                # Try local JSON first
+                json_path = os.path.join("data", "batch_eval_metrics.json")
+                if os.path.exists(json_path):
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+                
+                # Fallback to local CSV
+                csv_path = os.path.join("data", "batch_eval_metrics.csv")
+                if os.path.exists(csv_path):
+                    df = pd.read_csv(csv_path)
+                    return df.to_dict('records')
+            
+            return []
+            
+        except Exception as e:
+            st.error(f"Failed to load batch metrics: {str(e)}")
+            return []
 
 
 def create_data_store() -> DataStore:

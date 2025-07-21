@@ -1,20 +1,63 @@
-name: Batch Evaluation
+name: Batch LLM Evaluation
 
 on:
   schedule:
-    - cron: '*/2 * * * *'  # Every 2 minutes
+    - cron: '0 */2 * * *'  # Every 2 hours (adjust as needed for 14x per 12 hours)
   workflow_dispatch:        # Allows manual start
 
 jobs:
   batch-eval:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run Batch Evaluation
-        run: python batch_evaluator.py 
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Write GCP credentials to file
+        run: |
+          echo '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}' > gcp-key.json
+          echo "GCP credentials file created"
+
+      - name: Run batch evaluator with GCS upload
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gcp-key.json
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET || 'llm-evaluation-data' }}
+        run: |
+          echo "Starting batch evaluation..."
+          python batch_evaluator.py
+          echo "Batch evaluation completed"
+
+      - name: Verify GCS upload
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gcp-key.json
+          GCS_BUCKET: ${{ secrets.GCS_BUCKET || 'llm-evaluation-data' }}
+        run: |
+          echo "Verifying files were uploaded to GCS..."
+          python -c "
+          from google.cloud import storage
+          import os
+          client = storage.Client()
+          bucket = client.bucket(os.environ['GCS_BUCKET'])
+          json_blob = bucket.blob('batch_eval_metrics.json')
+          csv_blob = bucket.blob('batch_eval_metrics.csv')
+          if json_blob.exists() and csv_blob.exists():
+              print('✅ Both JSON and CSV files found in GCS')
+          else:
+              print('❌ Files missing in GCS')
+              exit(1)
+          "
+
+      - name: Clean up credentials
+        if: always()
+        run: |
+          rm -f gcp-key.json
+          echo "Credentials cleaned up" 

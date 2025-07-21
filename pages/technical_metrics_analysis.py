@@ -8,6 +8,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import time
+import json
+from io import StringIO
 
 st.set_page_config(page_title="Technical Metrics Analysis", layout="wide")
 
@@ -15,22 +17,73 @@ st.set_page_config(page_title="Technical Metrics Analysis", layout="wide")
 if not enforce_page_access("Technical Metrics Analysis", required_role="admin"):
     st.stop()
 
-# ---- REAL-TIME UPDATE CONFIGURATION ----
+# ---- GCS DATA RETRIEVAL ----
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_technical_metrics_data():
-    """Load technical metrics data with caching for real-time updates"""
+    """Load technical metrics data from GCS with fallback to local files"""
+    
+    # Try to load from GCS first
+    try:
+        # Import GCS dependencies
+        from google.cloud import storage
+        from google.oauth2 import service_account
+        
+        # Get credentials from Streamlit secrets
+        if "gcp_service_account" in st.secrets:
+            service_account_info = st.secrets["gcp_service_account"]
+            
+            # Handle case where service account is stored as string
+            if isinstance(service_account_info, str):
+                service_account_info = json.loads(service_account_info)
+            
+            # Create credentials and client
+            credentials = service_account.Credentials.from_service_account_info(service_account_info)
+            client = storage.Client(credentials=credentials)
+            
+            # Get bucket name
+            bucket_name = st.secrets.get("gcs_bucket_name", "llm-evaluation-data")
+            bucket = client.bucket(bucket_name)
+            
+            # Try to download CSV data
+            csv_blob = bucket.blob("batch_eval_metrics.csv")
+            if csv_blob.exists():
+                csv_content = csv_blob.download_as_text()
+                technical_df = pd.read_csv(StringIO(csv_content))
+                
+                # Convert timestamp column if present
+                if 'timestamp' in technical_df.columns:
+                    technical_df['timestamp'] = pd.to_datetime(technical_df['timestamp'])
+                
+                st.success(f"📊 Loaded {len(technical_df)} records from GCS (bucket: {bucket_name})")
+                return technical_df
+            else:
+                st.warning("⚠️ No batch evaluation data found in GCS yet")
+                
+    except ImportError:
+        st.warning("⚠️ Google Cloud Storage not available - using local fallback")
+    except Exception as e:
+        st.warning(f"⚠️ Could not load from GCS: {str(e)} - using local fallback")
+    
+    # Fallback to local file
     try:
         metrics_path = os.path.join("data", "batch_eval_metrics.csv")
         if os.path.exists(metrics_path):
             technical_df = pd.read_csv(metrics_path)
-            st.info("📈 Using sample batch evaluation data for demonstration")
+            
+            # Convert timestamp column if present
+            if 'timestamp' in technical_df.columns:
+                technical_df['timestamp'] = pd.to_datetime(technical_df['timestamp'])
+            
+            st.info(f"📈 Using local batch evaluation data ({len(technical_df)} records)")
+            return technical_df
         else:
-            technical_df = pd.DataFrame()
+            st.warning("⚠️ No local batch evaluation data found")
+            
     except Exception as e:
-        st.error(f"Failed to load technical metrics: {e}")
-        technical_df = pd.DataFrame()
+        st.error(f"❌ Failed to load technical metrics: {e}")
     
-    return technical_df
+    # Return empty DataFrame if all else fails
+    return pd.DataFrame()
 
 # ---- ENHANCED VISUALIZATION FUNCTIONS ----
 def create_performance_dashboard(technical_df):

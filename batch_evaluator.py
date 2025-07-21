@@ -4,6 +4,30 @@ import time
 import csv
 from datetime import datetime
 from typing import List, Dict, Any
+
+# --- BEGIN: Streamlit secrets GCS credential support ---
+try:
+    import streamlit as st
+    # Check for gcp_service_account in st.secrets
+    if "gcp_service_account" in st.secrets:
+        service_account_info = st.secrets["gcp_service_account"]
+        # If it's a string, parse as JSON
+        if isinstance(service_account_info, str):
+            service_account_info = json.loads(service_account_info)
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+            json.dump(service_account_info, f)
+            temp_cred_path = f.name
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_cred_path
+        # Set bucket name from secrets if available
+        if "gcs_bucket_name" in st.secrets:
+            os.environ["GCS_BUCKET"] = st.secrets["gcs_bucket_name"]
+except ImportError:
+    pass  # Not running in Streamlit, ignore
+except Exception as e:
+    print(f"[WARN] Could not set GCS credentials from Streamlit secrets: {e}")
+# --- END: Streamlit secrets GCS credential support ---
+
 from utils.rag_pipeline import build_rag_index, retrieve_context
 from utils.llm_clients import get_llm_client
 from utils.prompts import build_prompt
