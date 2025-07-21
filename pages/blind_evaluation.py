@@ -339,96 +339,95 @@ def display_question_and_responses(question: str, industry: str, responses: List
     """, unsafe_allow_html=True)
     st.markdown("---")
     
-    # Display each response
+    # Display responses in a 2x2 grid for compactness
     with st.form(f"ratings_form_{question_number}_{industry}"):
         rating_results = {}
-        for i, response in enumerate(responses, 1):
-            # Convert anonymous_id to include "RESPONSE" prefix
-            original_anonymous_id = response.get("anonymous_id", f"Response {i}")
-            if original_anonymous_id in ["A", "B", "C", "D"]:
-                anonymous_id = f"RESPONSE {original_anonymous_id}"
-            else:
-                anonymous_id = original_anonymous_id
-            response_text = response.get("response", "No response available")
-            st.markdown(f"""
-            <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: #e67e22;">
-            🤖 {anonymous_id}
-            </h3>
-            """, unsafe_allow_html=True)
-            with st.expander(f"📄 View {anonymous_id}", expanded=True):
-                st.markdown(f"""
-                <div style="font-size: 1.3rem; line-height: 1.6; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
-                {response_text}
-                </div>
-                """, unsafe_allow_html=True)
-            st.markdown("""
-            <h4 style="font-size: 1.4rem; margin: 20px 0 15px 0; color: #2c3e50;">
-            📊 Rate This Response:
-            </h4>
-            """, unsafe_allow_html=True)
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.markdown("""
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-                <strong>Quality</strong>
-                </div>
-                """, unsafe_allow_html=True)
-                quality_rating = st.selectbox(
-                    "Quality Rating",
-                    options=[1, 2, 3, 4, 5],
-                    key=f"quality_{anonymous_id}",
-                    help="Rate the overall quality of this response",
-                    label_visibility="collapsed"
-                )
-            with col2:
-                st.markdown("""
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-                <strong>Relevance</strong>
-                </div>
-                """, unsafe_allow_html=True)
-                relevance_rating = st.selectbox(
-                    "Relevance Rating",
-                    options=[1, 2, 3, 4, 5],
-                    key=f"relevance_{anonymous_id}",
-                    help="Rate how relevant this response is to the question",
-                    label_visibility="collapsed"
-                )
-            with col3:
-                st.markdown("""
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-                <strong>Accuracy</strong>
-                </div>
-                """, unsafe_allow_html=True)
-                accuracy_rating = st.selectbox(
-                    "Accuracy Rating",
-                    options=[1, 2, 3, 4, 5],
-                    key=f"accuracy_{anonymous_id}",
-                    help="Rate the factual accuracy of this response",
-                    label_visibility="collapsed"
-                )
-            with col4:
-                st.markdown("""
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-                <strong>Uniformity</strong>
-                </div>
-                """, unsafe_allow_html=True)
-                uniformity_rating = st.selectbox(
-                    "Uniformity Rating",
-                    options=[1, 2, 3, 4, 5],
-                    key=f"uniformity_{anonymous_id}",
-                    help="Rate the consistency and organization of this response",
-                    label_visibility="collapsed"
-                )
-            # Store ratings in session state (without comments)
-            rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
-            st.session_state[f"ratings_{rating_key}"] = {
-                "quality": quality_rating,
-                "relevance": relevance_rating,
-                "accuracy": accuracy_rating,
-                "uniformity": uniformity_rating,
-                "response_id": response.get("llm_model", "unknown")
-            }
-            st.markdown("---")
+        
+        # Create 2x2 grid layout
+        for row in range(2):
+            cols = st.columns(2, gap="large")
+            for col_idx in range(2):
+                response_idx = row * 2 + col_idx
+                if response_idx < len(responses):
+                    response = responses[response_idx]
+                    # Convert anonymous_id to include "RESPONSE" prefix
+                    original_anonymous_id = response.get("anonymous_id", f"Response {response_idx + 1}")
+                    if original_anonymous_id in ["A", "B", "C", "D"]:
+                        anonymous_id = f"RESPONSE {original_anonymous_id}"
+                    else:
+                        anonymous_id = original_anonymous_id
+                    response_text = response.get("response", "No response available")
+                    
+                    with cols[col_idx]:
+                        # Response header
+                        st.markdown(f"""
+                        <h3 style="font-size: 1.3rem; margin-bottom: 0.8rem; color: #e67e22; text-align: center;">
+                        🤖 {anonymous_id}
+                        </h3>
+                        """, unsafe_allow_html=True)
+                        
+                        # Response content in a compact container
+                        with st.container():
+                            st.markdown(f"""
+                            <div style="font-size: 1.0rem; line-height: 1.4; padding: 12px; 
+                                        background-color: #f8f9fa; border-radius: 8px; 
+                                        border: 1px solid #dee2e6; max-height: 300px; overflow-y: auto;">
+                            {response_text}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        # Rating section in compact format
+                        st.markdown("""
+                        <div style="font-size: 1.0rem; margin: 10px 0 5px 0; font-weight: bold; color: #2c3e50;">
+                        📊 Rate This Response:
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Compact 2x2 rating grid
+                        rating_cols = st.columns(2)
+                        with rating_cols[0]:
+                            st.markdown("**Quality**", help="Overall quality")
+                            quality_rating = st.selectbox(
+                                "Quality",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"quality_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                            st.markdown("**Accuracy**", help="Factual accuracy")
+                            accuracy_rating = st.selectbox(
+                                "Accuracy",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"accuracy_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                        with rating_cols[1]:
+                            st.markdown("**Relevance**", help="Relevance to question")
+                            relevance_rating = st.selectbox(
+                                "Relevance",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"relevance_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                            st.markdown("**Uniformity**", help="Consistency & organization")
+                            uniformity_rating = st.selectbox(
+                                "Uniformity",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"uniformity_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                        
+                        # Store ratings in session state
+                        rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
+                        st.session_state[f"ratings_{rating_key}"] = {
+                            "quality": quality_rating,
+                            "relevance": relevance_rating,
+                            "accuracy": accuracy_rating,
+                            "uniformity": uniformity_rating,
+                            "response_id": response.get("llm_model", "unknown")
+                        }
+                        
+                        # Visual separator
+                        st.markdown("---")
         submitted = st.form_submit_button("📤 Submit & Continue", type="primary", use_container_width=True)
         if submitted:
             st.session_state["form_submitted"] = True
@@ -1268,24 +1267,9 @@ def show_registration_form():
 def show_evaluation_interface():
     """Main function to display the blind evaluation interface."""
     
-    # Handle auto-scroll to top after question submit
+    # Show success message after question submit (no scroll needed with compact layout)
     if st.session_state.get("scroll_to_top", False):
-        # Use a more reliable scroll method with immediate execution
-        st.markdown(
-            """
-            <script>
-            setTimeout(function() {
-                window.scrollTo(0, 0);
-                document.documentElement.scrollTop = 0;
-                document.body.scrollTop = 0;
-            }, 100);
-            </script>
-            """,
-            unsafe_allow_html=True,
-        )
-        # Show success message
         st.success("✅ Question submitted successfully! Here's your next question:")
-        # Clear the flag
         st.session_state["scroll_to_top"] = False
     
     # Check if user is registered
