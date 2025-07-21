@@ -107,24 +107,42 @@ def main():
         collection_name = f"rag_collection_{industry}"
         rag_indices[industry] = build_rag_index_with_collection(dataset_path, collection_name, dataset_type="csv")
         embedding_models[industry] = get_embedding_model()
+    # --- Select 5 random questions across all industries ---
+    import random
+    all_questions = []
+    for industry, qs in questions.items():
+        for q in qs:
+            all_questions.append((industry, q))
+    selected = random.sample(all_questions, min(5, len(all_questions)))
     # Main evaluation loop
     all_metrics = []
     batch_timestamp = datetime.utcnow().isoformat() + 'Z'
-    for industry, qs in questions.items():
+    for industry, q in selected:
         rag_index = rag_indices[industry]
         embedding_model = embedding_models[industry]
-        for q in qs:
-            # Retrieve context
-            try:
-                context_results = retrieve_context(q, rag_index, embedding_model, top_k=3)
-                context_chunks = [r["text"] for r in context_results]
-            except Exception as e:
-                print(f"[ERROR] Context retrieval failed: {e}")
-                context_chunks = []
-            prompt = build_prompt(q, context_chunks)
-            prompt_tokens = count_tokens(prompt)
-            for llm in LLMS:
-                client = get_llm_client(llm["provider"], llm["model"])
+        # Retrieve context
+        try:
+            context_results = retrieve_context(q, rag_index, embedding_model, top_k=3)
+            context_chunks = [r["text"] for r in context_results]
+        except Exception as e:
+            print(f"[ERROR] Context retrieval failed: {e}")
+            context_chunks = []
+        prompt = build_prompt(q, context_chunks)
+        prompt_tokens = count_tokens(prompt)
+        for llm in LLMS:
+            client = get_llm_client(llm["provider"], llm["model"])
+            retry_count = 0
+            max_retries = 3
+            latency = None
+            response = ""
+            response_tokens = 0
+            total_tokens = prompt_tokens
+            throughput = 0
+            success = False
+            error = None
+            rate_limit_hit = False
+            error_type = None
+            while retry_count < max_retries:
                 start = time.time()
                 try:
                     response = client.generate(prompt)
@@ -134,6 +152,9 @@ def main():
                     throughput = response_tokens / latency if latency > 0 else 0
                     success = True
                     error = None
+                    rate_limit_hit = False
+                    error_type = None
+                    break
                 except Exception as e:
                     latency = None
                     response = ""
@@ -142,26 +163,45 @@ def main():
                     throughput = 0
                     success = False
                     error = str(e)
-                coverage_score = compute_coverage(response, context_chunks)
-                metric = {
-                    "timestamp": batch_timestamp,
-                    "industry": industry,
-                    "question": q,
-                    "llm_provider": llm["provider"],
-                    "llm_model": llm["model"],
-                    "latency_sec": latency,
-                    "prompt_tokens": prompt_tokens,
-                    "response_tokens": response_tokens,
-                    "total_tokens": total_tokens,
-                    "throughput_tps": throughput,
-                    "success": success,
-                    "error": error,
-                    "coverage_score": coverage_score,
-                }
-                all_metrics.append(metric)
-                latency_str = f"{latency:.2f}s" if latency is not None else "N/A"
-                coverage_str = f"{coverage_score:.2f}" if coverage_score is not None else "N/A"
-                print(f"[{industry}] {llm['provider']}:{llm['model']} | Latency: {latency_str} | Success: {success} | Coverage: {coverage_str}")
+                    # Error parsing for type and rate limit
+                    err_str = str(e).lower()
+                    if any(x in err_str for x in ["rate limit", "too many requests", "429"]):
+                        rate_limit_hit = True
+                        error_type = "rate_limit"
+                    elif any(x in err_str for x in ["timeout", "timed out"]):
+                        error_type = "timeout"
+                    elif any(x in err_str for x in ["network", "connection"]):
+                        error_type = "network"
+                    elif any(x in err_str for x in ["api", "invalid request", "bad request"]):
+                        error_type = "api_error"
+                    else:
+                        error_type = "other"
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        time.sleep(2)  # brief pause before retry
+            coverage_score = compute_coverage(response, context_chunks)
+            metric = {
+                "timestamp": batch_timestamp,
+                "industry": industry,
+                "question": q,
+                "llm_provider": llm["provider"],
+                "llm_model": llm["model"],
+                "latency_sec": latency,
+                "prompt_tokens": prompt_tokens,
+                "response_tokens": response_tokens,
+                "total_tokens": total_tokens,
+                "throughput_tps": throughput,
+                "success": success,
+                "error": error,
+                "coverage_score": coverage_score,
+                "retry_count": retry_count,
+                "rate_limit_hit": rate_limit_hit,
+                "error_type": error_type,
+            }
+            all_metrics.append(metric)
+            latency_str = f"{latency:.2f}s" if latency is not None else "N/A"
+            coverage_str = f"{coverage_score:.2f}" if coverage_score is not None else "N/A"
+            print(f"[{industry}] {llm['provider']}:{llm['model']} | Latency: {latency_str} | Success: {success} | Coverage: {coverage_str} | Retries: {retry_count} | RateLimit: {rate_limit_hit} | ErrorType: {error_type}")
     # Save results
     save_json(all_metrics, OUTPUT_JSON)
     save_csv(all_metrics, OUTPUT_CSV)

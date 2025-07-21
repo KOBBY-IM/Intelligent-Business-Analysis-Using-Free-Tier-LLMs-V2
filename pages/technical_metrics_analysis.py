@@ -34,39 +34,101 @@ def load_technical_metrics_data():
 
 # ---- ENHANCED VISUALIZATION FUNCTIONS ----
 def create_performance_dashboard(technical_df):
-    """Create comprehensive performance dashboard"""
+    """Create comprehensive performance dashboard with moving averages"""
     if technical_df.empty:
         return None
-    
+    # Compute moving averages (window=10)
+    tech_df = technical_df.copy()
+    if 'latency_sec' in tech_df.columns:
+        tech_df['latency_ma'] = tech_df['latency_sec'].rolling(window=10, min_periods=1).mean()
+    if 'throughput_tps' in tech_df.columns:
+        tech_df['throughput_ma'] = tech_df['throughput_tps'].rolling(window=10, min_periods=1).mean()
+    if 'success' in tech_df.columns:
+        tech_df['success_ma'] = tech_df['success'].rolling(window=10, min_periods=1).mean()
     # Create subplots for different metrics
     fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=['Latency (seconds)', 'Throughput (tokens/sec)', 'Success Rate (%)', 'Coverage Score'],
+        rows=3, cols=2,
+        subplot_titles=['Latency (seconds)', 'Latency (Moving Avg)', 'Throughput (tokens/sec)', 'Throughput (Moving Avg)', 'Success Rate (%)', 'Success Rate (Moving Avg)'],
         specs=[[{"secondary_y": False}, {"secondary_y": False}],
+               [{"secondary_y": False}, {"secondary_y": False}],
                [{"secondary_y": False}, {"secondary_y": False}]]
     )
-    
-    metrics = ['latency_sec', 'throughput_tps', 'success', 'coverage_score']
-    for i, metric in enumerate(metrics):
-        if metric in technical_df.columns:
-            row = (i // 2) + 1
-            col = (i % 2) + 1
-            
-            for model in technical_df['llm_model'].unique():
-                model_data = technical_df[technical_df['llm_model'] == model]
-                if 'timestamp' in model_data.columns:
-                    fig.add_trace(
-                        go.Scatter(
-                            x=model_data['timestamp'],
-                            y=model_data[metric],
-                            mode='lines+markers',
-                            name=f"{model}",
-                            showlegend=(row == 1 and col == 1)
-                        ),
-                        row=row, col=col
-                    )
-    
-    fig.update_layout(height=700, title_text="Technical Performance Metrics Over Time")
+    # Latency and moving average
+    if 'latency_sec' in tech_df.columns:
+        for model in tech_df['llm_model'].unique():
+            model_data = tech_df[tech_df['llm_model'] == model]
+            if 'timestamp' in model_data.columns:
+                fig.add_trace(
+                    go.Scatter(
+                        x=model_data['timestamp'],
+                        y=model_data['latency_sec'],
+                        mode='lines+markers',
+                        name=f"{model} Latency",
+                        showlegend=False
+                    ),
+                    row=1, col=1
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=model_data['timestamp'],
+                        y=model_data['latency_ma'],
+                        mode='lines',
+                        name=f"{model} Latency MA",
+                        showlegend=True
+                    ),
+                    row=1, col=2
+                )
+    # Throughput and moving average
+    if 'throughput_tps' in tech_df.columns:
+        for model in tech_df['llm_model'].unique():
+            model_data = tech_df[tech_df['llm_model'] == model]
+            if 'timestamp' in model_data.columns:
+                fig.add_trace(
+                    go.Scatter(
+                        x=model_data['timestamp'],
+                        y=model_data['throughput_tps'],
+                        mode='lines+markers',
+                        name=f"{model} Throughput",
+                        showlegend=False
+                    ),
+                    row=2, col=1
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=model_data['timestamp'],
+                        y=model_data['throughput_ma'],
+                        mode='lines',
+                        name=f"{model} Throughput MA",
+                        showlegend=True
+                    ),
+                    row=2, col=2
+                )
+    # Success and moving average
+    if 'success' in tech_df.columns:
+        for model in tech_df['llm_model'].unique():
+            model_data = tech_df[tech_df['llm_model'] == model]
+            if 'timestamp' in model_data.columns:
+                fig.add_trace(
+                    go.Scatter(
+                        x=model_data['timestamp'],
+                        y=model_data['success']*100,
+                        mode='lines+markers',
+                        name=f"{model} Success",
+                        showlegend=False
+                    ),
+                    row=3, col=1
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=model_data['timestamp'],
+                        y=model_data['success_ma']*100,
+                        mode='lines',
+                        name=f"{model} Success MA",
+                        showlegend=True
+                    ),
+                    row=3, col=2
+                )
+    fig.update_layout(height=900, title_text="Technical Performance Metrics and Moving Averages Over Time")
     return fig
 
 def create_failure_analysis(technical_df):
@@ -471,6 +533,17 @@ else:
         rate_limit_fig = create_rate_limit_analysis(filtered_tech)
         if rate_limit_fig:
             st.plotly_chart(rate_limit_fig, use_container_width=True)
+
+# ---- ADDITIONAL METRIC DISTRIBUTIONS ----
+st.header("🧮 Additional Metric Distributions")
+if not filtered_tech.empty:
+    add_fig, rate_fig, err_fig = create_additional_metric_distributions(filtered_tech)
+    if add_fig:
+        st.plotly_chart(add_fig, use_container_width=True)
+    if rate_fig:
+        st.plotly_chart(rate_fig, use_container_width=True)
+    if err_fig:
+        st.plotly_chart(err_fig, use_container_width=True)
 
 # ---- AUTO-REFRESH FUNCTIONALITY ----
 if filters['auto_refresh']:
