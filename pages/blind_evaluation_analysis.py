@@ -97,25 +97,23 @@ def flatten_ratings_data(df):
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_blind_evaluation_data():
     """Load blind evaluation data from GCS with fallback to local files"""
-    
-    # Try to load from GCS using DataStore
     try:
-        # Check if GCS credentials are available in secrets
+        # Robust GCS credential detection (matches technical_metrics_analysis.py)
+        gcs_available = False
         if "gcp_service_account" in st.secrets:
+            gcs_available = True
+        elif "gcs" in st.secrets and "service_account" in st.secrets["gcs"]:
+            gcs_available = True
+        if gcs_available:
             ds = DataStore("gcs")
             if ds.storage_type == "gcs":
                 human_evals = ds.load_evaluation_data()
                 if human_evals:
                     human_df = pd.DataFrame(human_evals)
-                    
-                    # Convert timestamp columns if present
                     for col in ['timestamp', 'evaluation_timestamp']:
                         if col in human_df.columns:
                             human_df[col] = pd.to_datetime(human_df[col])
-                    
-                    # Flatten nested ratings structure for analysis
                     human_df = flatten_ratings_data(human_df)
-                    
                     st.success(f"📊 Loaded {len(human_df)} blind evaluation records from GCS")
                     return human_df
                 else:
@@ -124,7 +122,6 @@ def load_blind_evaluation_data():
                 st.warning("⚠️ DataStore could not initialize with GCS - using local fallback")
         else:
             st.info("ℹ️ GCS credentials not found - using local fallback")
-            
     except Exception as e:
         st.warning(f"⚠️ Could not load from GCS: {str(e)} - using local fallback")
     
