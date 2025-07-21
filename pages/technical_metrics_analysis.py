@@ -44,6 +44,11 @@ def load_technical_metrics_data():
             bucket_name = st.secrets.get("gcs_bucket_name", "llm-evaluation-data")
             bucket = client.bucket(bucket_name)
             
+            # Check if bucket exists
+            if not bucket.exists():
+                st.error(f"❌ GCS bucket '{bucket_name}' does not exist or is not accessible")
+                raise Exception(f"Bucket {bucket_name} not found")
+            
             # Try to download CSV data
             csv_blob = bucket.blob("batch_eval_metrics.csv")
             if csv_blob.exists():
@@ -55,14 +60,27 @@ def load_technical_metrics_data():
                     technical_df['timestamp'] = pd.to_datetime(technical_df['timestamp'])
                 
                 st.success(f"📊 Loaded {len(technical_df)} records from GCS (bucket: {bucket_name})")
+                st.info(f"🔍 Data last modified: {csv_blob.updated}")
                 return technical_df
             else:
-                st.warning("⚠️ No batch evaluation data found in GCS yet")
+                st.warning(f"⚠️ File 'batch_eval_metrics.csv' not found in GCS bucket '{bucket_name}'")
                 
+                # List available files for debugging
+                blobs = list(bucket.list_blobs(prefix="batch_eval"))
+                if blobs:
+                    blob_names = [blob.name for blob in blobs]
+                    st.info(f"🔍 Available files in bucket: {blob_names}")
+                else:
+                    st.info("🔍 No batch evaluation files found in bucket")
+                    
+        else:
+            st.warning("⚠️ GCS credentials (gcp_service_account) not found in Streamlit secrets")
+            
     except ImportError:
-        st.warning("⚠️ Google Cloud Storage not available - using local fallback")
+        st.warning("⚠️ Google Cloud Storage library not available - using local fallback")
     except Exception as e:
         st.warning(f"⚠️ Could not load from GCS: {str(e)} - using local fallback")
+        st.info("💡 **To enable GCS access**: Configure 'gcp_service_account' and 'gcs_bucket_name' in Streamlit secrets")
     
     # Fallback to local file
     try:
@@ -78,6 +96,7 @@ def load_technical_metrics_data():
             return technical_df
         else:
             st.warning("⚠️ No local batch evaluation data found")
+            st.info("💡 **To generate data**: Run the batch evaluator script or create sample data")
             
     except Exception as e:
         st.error(f"❌ Failed to load technical metrics: {e}")
