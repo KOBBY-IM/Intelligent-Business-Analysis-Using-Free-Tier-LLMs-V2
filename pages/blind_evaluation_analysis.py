@@ -28,7 +28,7 @@ def flatten_ratings_data(df):
     {'ratings': {'A': {'quality': 4, 'relevance': 5}, 'B': {...}}}
     
     To flat format with one row per response:
-    quality: 4, relevance: 5, response_id: 'A', llm_model: 'groq:llama3-70b-8192'
+    quality: 4, relevance: 5, response_id: 'A', llm_model: 'Model A'
     """
     if df.empty:
         return df
@@ -40,6 +40,39 @@ def flatten_ratings_data(df):
     for _, row in df.iterrows():
         try:
             base_data = row.to_dict()
+            
+            # Handle new bulk saving format with individual_question_ratings
+            if 'individual_question_ratings' in base_data:
+                individual_ratings = base_data.get('individual_question_ratings', {})
+                if isinstance(individual_ratings, dict):
+                    for question_key, question_data in individual_ratings.items():
+                        if isinstance(question_data, dict) and 'ratings' in question_data:
+                            # Create a row for each question's ratings
+                            question_base = base_data.copy()
+                            question_base['question_key'] = question_key
+                            question_base['question'] = question_data.get('question', '')
+                            question_base['current_industry'] = question_data.get('industry', '')
+                            
+                            ratings = question_data.get('ratings', {})
+                            if ratings and isinstance(ratings, dict):
+                                has_valid_ratings = False
+                                for response_id, rating_data in ratings.items():
+                                    if isinstance(rating_data, dict) and len(rating_data) > 0:
+                                        new_row = question_base.copy()
+                                        new_row['response_id'] = response_id
+                                        new_row['quality'] = rating_data.get('quality', None)
+                                        new_row['relevance'] = rating_data.get('relevance', None) 
+                                        new_row['accuracy'] = rating_data.get('accuracy', None)
+                                        new_row['uniformity'] = rating_data.get('uniformity', None)
+                                        new_row['llm_model'] = f"Model {response_id}"
+                                        flattened_rows.append(new_row)
+                                        has_valid_ratings = True
+                                
+                                if not has_valid_ratings:
+                                    empty_ratings_count += 1
+                continue  # Skip old format processing for this row
+            
+            # Handle old format with direct ratings field
             ratings = base_data.pop('ratings', {})
             
             # Handle different types of ratings data
@@ -54,7 +87,8 @@ def flatten_ratings_data(df):
                         new_row['relevance'] = rating_data.get('relevance', None) 
                         new_row['accuracy'] = rating_data.get('accuracy', None)
                         new_row['uniformity'] = rating_data.get('uniformity', None)
-                        new_row['llm_model'] = rating_data.get('response_id', 'unknown')
+                        # Use response_id as model identifier since this is blind evaluation
+                        new_row['llm_model'] = f"Model {response_id}"
                         flattened_rows.append(new_row)
                         has_valid_ratings = True
                 
@@ -69,7 +103,7 @@ def flatten_ratings_data(df):
                 base_data['relevance'] = None
                 base_data['accuracy'] = None
                 base_data['uniformity'] = None
-                base_data['llm_model'] = 'unknown'
+                base_data['llm_model'] = 'No Ratings'
                 flattened_rows.append(base_data)
                 
         except Exception as e:
