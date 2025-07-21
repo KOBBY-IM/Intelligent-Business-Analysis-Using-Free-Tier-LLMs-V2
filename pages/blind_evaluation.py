@@ -945,10 +945,17 @@ def show_final_thank_you():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("🏠 Return to Homepage", type="secondary", use_container_width=True):
-            # Clear evaluation session data but keep user info for potential future use
-            for key in ["evaluation_session", "final_feedback", "evaluation_submitted"]:
+            # Clear ALL user session data to properly return to homepage
+            keys_to_clear = [
+                "user_email", "tester_name", "user_name", "user_role", 
+                "evaluation_session", "final_feedback", "evaluation_submitted",
+                "tester_registrations"
+            ]
+            for key in keys_to_clear:
                 if key in st.session_state:
                     del st.session_state[key]
+            # Explicitly set page to Home to override default navigation logic
+            st.session_state["current_page"] = "Home"
             st.switch_page("app.py")
 
 def show_completion_message():
