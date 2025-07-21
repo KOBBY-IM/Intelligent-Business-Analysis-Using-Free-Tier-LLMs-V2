@@ -100,4 +100,5 @@ docs/
 .env
 .env.*
 streamlit_secrets.toml
-.streamlit/secrets.toml
+.streamlit/secrets.tomldata/batch_eval_metrics.csv
+data/batch_eval_metrics.json
