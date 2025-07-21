@@ -165,10 +165,10 @@ def show_home():
         - **Automated Technical Assessment**: Continuous monitoring of latency, throughput, 
           and reliability metrics
         
-                 **Retrieval-Augmented Generation (RAG):**
-         - Responses grounded in real business datasets
-         - Context-driven answer generation for improved relevance
-         - Industry-specific knowledge base integration
+        **Retrieval-Augmented Generation (RAG):**
+        - Responses grounded in real business datasets
+        - Context-driven answer generation for improved relevance
+        - Industry-specific knowledge base integration
         
         **Data-Driven Insights:**
         - Real e-commerce shopping trends dataset (3,900+ records)
@@ -180,10 +180,10 @@ def show_home():
         st.markdown("""
         ### 🎯 Key Features
         
-                 **LLM Providers Evaluated:**
-         - **Groq**: High-speed inference optimization
-         - **OpenRouter**: Multi-model access platform
-         - **Four distinct models** selected for comprehensive comparison
+        **LLM Providers Evaluated:**
+        - **Groq**: High-speed inference optimization
+        - **OpenRouter**: Multi-model access platform
+        - **Four distinct models** selected for comprehensive comparison
         
         **Evaluation Focus Areas:**
         - Response quality and clarity
