@@ -1032,9 +1032,13 @@ def show_completion_message():
             tester_email = st.session_state.get("user_email")
             if tester_email:
                 mark_evaluation_completed(tester_email)
-            # Set redirect flag and stop script for safe rerun (before any success messages)
-            st.session_state["redirect_to_start"] = True
-            st.stop()
+            # Redirect to home app after final assessment
+            try:
+                st.switch_page("/")
+            except Exception:
+                st.experimental_set_query_params()
+                st.success("✅ Final assessment submitted! Redirecting to home...")
+                st.stop()
     
     # Option to reset for testing (remove in production)
     if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
@@ -1195,8 +1199,11 @@ def show_registration_form():
             st.markdown("</div>", unsafe_allow_html=True)
             
             if submitted:
+                from utils.registration import validate_email_format
                 if not name or not email:
                     st.error("❌ Please provide both name and email address.")
+                elif not validate_email_format(email):
+                    st.error("❌ Please enter a valid email address.")
                 elif not consent_given:
                     st.error("❌ You must agree to the consent form to participate.")
                 else:
