@@ -6,26 +6,103 @@ from datetime import datetime
 from typing import List, Dict, Any
 
 # --- BEGIN: Streamlit secrets GCS credential support ---
-try:
-    import streamlit as st
-    # Check for gcp_service_account in st.secrets
-    if "gcp_service_account" in st.secrets:
-        service_account_info = st.secrets["gcp_service_account"]
-        # If it's a string, parse as JSON
-        if isinstance(service_account_info, str):
-            service_account_info = json.loads(service_account_info)
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
-            json.dump(service_account_info, f)
-            temp_cred_path = f.name
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_cred_path
-        # Set bucket name from secrets if available
-        if "gcs_bucket_name" in st.secrets:
-            os.environ["GCS_BUCKET"] = st.secrets["gcs_bucket_name"]
-except ImportError:
-    pass  # Not running in Streamlit, ignore
-except Exception as e:
-    print(f"[WARN] Could not set GCS credentials from Streamlit secrets: {e}")
+def setup_gcs_credentials():
+    """Set up GCS credentials from various sources"""
+    try:
+        # First try: Check if already set via environment variables
+        if os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
+            print("[INFO] Using existing GOOGLE_APPLICATION_CREDENTIALS from environment")
+            return True
+            
+        # Second try: Streamlit context (if available)
+        try:
+            import streamlit as st
+            service_account_info = None
+            bucket_name = None
+            
+            # Check for gcp_service_account format
+            if "gcp_service_account" in st.secrets:
+                print("[INFO] Found GCP credentials in Streamlit secrets (gcp_service_account)")
+                service_account_info = st.secrets["gcp_service_account"]
+                bucket_name = st.secrets.get("gcs_bucket_name")
+            # Check for gcs.service_account format
+            elif "gcs" in st.secrets and "service_account" in st.secrets["gcs"]:
+                print("[INFO] Found GCP credentials in Streamlit secrets (gcs.service_account)")
+                service_account_info = st.secrets["gcs"]["service_account"]
+                bucket_name = st.secrets["gcs"].get("bucket_name")
+            
+            if service_account_info:
+                if isinstance(service_account_info, str):
+                    service_account_info = json.loads(service_account_info)
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+                    json.dump(service_account_info, f)
+                    temp_cred_path = f.name
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_cred_path
+                if bucket_name:
+                    os.environ["GCS_BUCKET"] = bucket_name
+                print(f"[INFO] Created temporary credentials file: {temp_cred_path}")
+                return True
+        except ImportError:
+            pass  # Not in Streamlit context
+        except Exception as e:
+            print(f"[WARN] Could not use Streamlit secrets: {e}")
+            
+        # Third try: Read secrets.toml directly (for local development)
+        secrets_path = ".streamlit/secrets.toml"
+        if os.path.exists(secrets_path):
+            print("[INFO] Reading credentials from .streamlit/secrets.toml")
+            try:
+                import toml
+                secrets = toml.load(secrets_path)
+                
+                service_account_info = None
+                bucket_name = None
+                
+                # Check for gcp_service_account format
+                if "gcp_service_account" in secrets:
+                    service_account_info = secrets["gcp_service_account"]
+                    bucket_name = secrets.get("gcs_bucket_name")
+                # Check for gcs.service_account format  
+                elif "gcs" in secrets and "service_account" in secrets["gcs"]:
+                    service_account_info = secrets["gcs"]["service_account"]
+                    bucket_name = secrets["gcs"].get("bucket_name")
+                
+                if service_account_info:
+                    # Handle string format (your case)
+                    if isinstance(service_account_info, str):
+                        service_account_info = json.loads(service_account_info)
+                    
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+                        json.dump(service_account_info, f)
+                        temp_cred_path = f.name
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_cred_path
+                    
+                    # Set bucket name if available
+                    if bucket_name:
+                        os.environ["GCS_BUCKET"] = bucket_name
+                    
+                    print(f"[INFO] Created credentials from secrets.toml: {temp_cred_path}")
+                    print(f"[INFO] Using bucket: {bucket_name or 'llm-evaluation-data (default)'}")
+                    return True
+                else:
+                    print("[WARN] No GCP service account found in secrets.toml")
+                    
+            except ImportError:
+                print("[WARN] toml package not found. Install with: pip install toml")
+            except Exception as e:
+                print(f"[WARN] Error reading secrets.toml: {e}")
+        
+        print("[WARN] No GCP credentials found. GCS upload will be skipped.")
+        return False
+        
+    except Exception as e:
+        print(f"[ERROR] Error setting up GCS credentials: {e}")
+        return False
+
+# Set up credentials at startup
+setup_gcs_credentials()
 # --- END: Streamlit secrets GCS credential support ---
 
 from utils.rag_pipeline import build_rag_index, retrieve_context
