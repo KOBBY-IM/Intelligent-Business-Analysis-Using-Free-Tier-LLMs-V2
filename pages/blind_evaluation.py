@@ -1040,13 +1040,7 @@ def show_completion_message():
             st.session_state["redirect_to_home"] = True
             st.stop()
     
-    # Option to reset for testing (remove in production)
-    if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
-        if "evaluation_session" in st.session_state:
-            del st.session_state["evaluation_session"]
-        if "final_feedback" in st.session_state:
-            del st.session_state["final_feedback"]
-        st.rerun()
+
 
 def show_registration_form():
     """Display the registration form for testers with improved UI"""
