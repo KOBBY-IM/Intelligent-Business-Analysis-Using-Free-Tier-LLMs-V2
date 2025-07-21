@@ -51,7 +51,7 @@ def main():
     current_role = get_current_user_role()
     
     # Build navigation options based on user role
-    nav_options = ["Home"]
+    nav_options = ["Home", "RAG Demo"]
     
     # Add role-specific pages
     if current_role == "tester" or current_role == "admin":
@@ -126,6 +126,8 @@ def main():
     elif page == "Technical Metrics Analysis":
         if enforce_page_access("Technical Metrics Analysis", "admin"):
             st.switch_page("pages/technical_metrics_analysis.py")
+    elif page == "RAG Demo":
+        st.switch_page("pages/rag_demo.py")
     else:
         st.info(f"📋 {page} - Under Development")
         st.markdown("This page will be implemented in upcoming releases.")
