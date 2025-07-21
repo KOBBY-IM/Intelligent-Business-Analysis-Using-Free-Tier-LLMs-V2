@@ -330,107 +330,98 @@ def display_question_and_responses(question: str, industry: str, responses: List
     st.markdown("---")
     
     # Display each response
-    for i, response in enumerate(responses, 1):
-        # Convert anonymous_id to include "RESPONSE" prefix
-        original_anonymous_id = response.get("anonymous_id", f"Response {i}")
-        if original_anonymous_id in ["A", "B", "C", "D"]:
-            anonymous_id = f"RESPONSE {original_anonymous_id}"
-        else:
-            anonymous_id = original_anonymous_id
-        
-        response_text = response.get("response", "No response available")
-        
-        st.markdown(f"""
-        <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: #e67e22;">
-        🤖 {anonymous_id}
-        </h3>
-        """, unsafe_allow_html=True)
-        
-        # Response text in an expander with larger font
-        with st.expander(f"📄 View {anonymous_id}", expanded=True):
+    with st.form(f"ratings_form_{question_number}_{industry}"):
+        rating_results = {}
+        for i, response in enumerate(responses, 1):
+            # Convert anonymous_id to include "RESPONSE" prefix
+            original_anonymous_id = response.get("anonymous_id", f"Response {i}")
+            if original_anonymous_id in ["A", "B", "C", "D"]:
+                anonymous_id = f"RESPONSE {original_anonymous_id}"
+            else:
+                anonymous_id = original_anonymous_id
+            response_text = response.get("response", "No response available")
             st.markdown(f"""
-            <div style="font-size: 1.3rem; line-height: 1.6; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
-            {response_text}
-            </div>
+            <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: #e67e22;">
+            🤖 {anonymous_id}
+            </h3>
             """, unsafe_allow_html=True)
-        
-        # Rating section with larger fonts
-        st.markdown("""
-        <h4 style="font-size: 1.4rem; margin: 20px 0 15px 0; color: #2c3e50;">
-        📊 Rate This Response:
-        </h4>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
+            with st.expander(f"📄 View {anonymous_id}", expanded=True):
+                st.markdown(f"""
+                <div style="font-size: 1.3rem; line-height: 1.6; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+                {response_text}
+                </div>
+                """, unsafe_allow_html=True)
             st.markdown("""
-            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-            <strong>Quality</strong>
-            </div>
+            <h4 style="font-size: 1.4rem; margin: 20px 0 15px 0; color: #2c3e50;">
+            📊 Rate This Response:
+            </h4>
             """, unsafe_allow_html=True)
-            quality_rating = st.selectbox(
-                "Quality Rating",
-                options=[1, 2, 3, 4, 5],
-                key=f"quality_{anonymous_id}",
-                help="Rate the overall quality of this response",
-                label_visibility="collapsed"
-            )
-        
-        with col2:
-            st.markdown("""
-            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-            <strong>Relevance</strong>
-            </div>
-            """, unsafe_allow_html=True)
-            relevance_rating = st.selectbox(
-                "Relevance Rating",
-                options=[1, 2, 3, 4, 5],
-                key=f"relevance_{anonymous_id}",
-                help="Rate how relevant this response is to the question",
-                label_visibility="collapsed"
-            )
-        
-        with col3:
-            st.markdown("""
-            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-            <strong>Accuracy</strong>
-            </div>
-            """, unsafe_allow_html=True)
-            accuracy_rating = st.selectbox(
-                "Accuracy Rating",
-                options=[1, 2, 3, 4, 5],
-                key=f"accuracy_{anonymous_id}",
-                help="Rate the factual accuracy of this response",
-                label_visibility="collapsed"
-            )
-        
-        with col4:
-            st.markdown("""
-            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-            <strong>Uniformity</strong>
-            </div>
-            """, unsafe_allow_html=True)
-            uniformity_rating = st.selectbox(
-                "Uniformity Rating",
-                options=[1, 2, 3, 4, 5],
-                key=f"uniformity_{anonymous_id}",
-                help="Rate the consistency and organization of this response",
-                label_visibility="collapsed"
-            )
-        
-        # Store ratings in session state (without comments)
-        # Extract just the letter (A, B, C, D) from anonymous_id
-        rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
-        st.session_state[f"ratings_{rating_key}"] = {
-            "quality": quality_rating,
-            "relevance": relevance_rating,
-            "accuracy": accuracy_rating,
-            "uniformity": uniformity_rating,
-            "response_id": response.get("llm_model", "unknown")
-        }
-        
-        st.markdown("---")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown("""
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+                <strong>Quality</strong>
+                </div>
+                """, unsafe_allow_html=True)
+                quality_rating = st.selectbox(
+                    "Quality Rating",
+                    options=[1, 2, 3, 4, 5],
+                    key=f"quality_{anonymous_id}",
+                    help="Rate the overall quality of this response",
+                    label_visibility="collapsed"
+                )
+            with col2:
+                st.markdown("""
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+                <strong>Relevance</strong>
+                </div>
+                """, unsafe_allow_html=True)
+                relevance_rating = st.selectbox(
+                    "Relevance Rating",
+                    options=[1, 2, 3, 4, 5],
+                    key=f"relevance_{anonymous_id}",
+                    help="Rate how relevant this response is to the question",
+                    label_visibility="collapsed"
+                )
+            with col3:
+                st.markdown("""
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+                <strong>Accuracy</strong>
+                </div>
+                """, unsafe_allow_html=True)
+                accuracy_rating = st.selectbox(
+                    "Accuracy Rating",
+                    options=[1, 2, 3, 4, 5],
+                    key=f"accuracy_{anonymous_id}",
+                    help="Rate the factual accuracy of this response",
+                    label_visibility="collapsed"
+                )
+            with col4:
+                st.markdown("""
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+                <strong>Uniformity</strong>
+                </div>
+                """, unsafe_allow_html=True)
+                uniformity_rating = st.selectbox(
+                    "Uniformity Rating",
+                    options=[1, 2, 3, 4, 5],
+                    key=f"uniformity_{anonymous_id}",
+                    help="Rate the consistency and organization of this response",
+                    label_visibility="collapsed"
+                )
+            # Store ratings in session state (without comments)
+            rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
+            st.session_state[f"ratings_{rating_key}"] = {
+                "quality": quality_rating,
+                "relevance": relevance_rating,
+                "accuracy": accuracy_rating,
+                "uniformity": uniformity_rating,
+                "response_id": response.get("llm_model", "unknown")
+            }
+            st.markdown("---")
+        submitted = st.form_submit_button("📤 Submit & Continue", type="primary", use_container_width=True)
+        if submitted:
+            st.session_state["form_submitted"] = True
 
 def get_ground_truth_for_question(question: str, industry: str) -> str:
     """
@@ -1056,6 +1047,14 @@ def show_completion_message():
     
     Thank you for your valuable contribution to this research!
     """)
+            
+            # Redirect to start page after short delay
+            import time
+            time.sleep(2)
+            for key in ["user_email", "tester_name", "user_name", "user_role", "evaluation_session", "final_feedback"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.experimental_rerun()
     
     # Option to reset for testing (remove in production)
     if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
@@ -1432,40 +1431,26 @@ def show_evaluation_interface():
     if question_responses:
         # Shuffle responses for anonymity
         shuffled_responses = shuffle_responses(question_responses)
-        
         # Set current question context in session state for data collection
         st.session_state["current_evaluation_question"] = current_question
         st.session_state["current_evaluation_industry"] = current_industry
-        
-        # Display question and responses
+        # Display question and responses (now inside a form)
         question_count = len(selected_questions[current_industry])
         display_question_and_responses(current_question, current_industry, shuffled_responses, current_question_index + 1)
-        
-        # Submit button (collect individual ratings)
-        st.markdown("---")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col2:
-            if st.button("📤 Submit & Continue", type="primary", use_container_width=True):
-                # Collect and save evaluation data
-                evaluation_data = collect_evaluation_data()
-                evaluation_data["question_key"] = question_key
-                save_evaluation_data(evaluation_data)
-                
-                # Mark question as completed
-                completed_questions.add(question_key)
-                session["current_question_index"] += 1
-                
-                # Clear session state for next evaluation
-                for key in list(st.session_state.keys()):
-                    if key.startswith("ratings_") or key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_"):
-                        del st.session_state[key]
-                
-                # Set flag to trigger auto-scroll on next page load
-                st.session_state["scroll_to_top"] = True
-                
-                # Force a rerun to trigger the scroll
-                st.rerun()
+        # Process form submission
+        if st.session_state.get("form_submitted", False):
+            evaluation_data = collect_evaluation_data()
+            evaluation_data["question_key"] = question_key
+            save_evaluation_data(evaluation_data)
+            completed_questions.add(question_key)
+            session["current_question_index"] += 1
+            # Clear session state for next evaluation
+            for key in list(st.session_state.keys()):
+                if key.startswith("ratings_") or key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_"):
+                    del st.session_state[key]
+            st.session_state["scroll_to_top"] = True
+            st.session_state["form_submitted"] = False
+            st.rerun()
     else:
         st.error("❌ No responses available for the selected question.")
 
