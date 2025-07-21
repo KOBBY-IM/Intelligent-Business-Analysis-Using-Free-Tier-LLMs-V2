@@ -133,48 +133,124 @@ def main():
         st.markdown("This page will be implemented in upcoming releases.")
 
 def show_home():
-    """Display the home page with project overview"""
+    """Display the home page with comprehensive project information"""
     
-    st.header("📊 Project Overview")
+    # Project introduction
+    st.markdown("""
+    ## 🎯 Welcome to the Intelligent Business Analysis Research Platform
     
-    col1, col2 = st.columns(2)
+    This research platform provides a comprehensive framework for evaluating and comparing free-tier 
+    Large Language Models (LLMs) in business intelligence applications, specifically focusing on 
+    **retail and finance industries**.
+    """)
+    
+    # Main project description
+    st.markdown("""
+    ## 📋 Research Overview
+    
+    Organizations increasingly rely on AI-powered analysis for critical business decisions, yet selecting 
+    the optimal LLM provider remains challenging due to limited comparative research and evidence-based 
+    guidance. This study addresses this gap by providing systematic evaluation of free-tier LLMs through 
+    both human assessment and automated technical metrics.
+    """)
+    
+    # Two-column layout for key information
+    col1, col2 = st.columns([1, 1], gap="large")
     
     with col1:
-        st.subheader("🎯 Objectives")
         st.markdown("""
-        - **Compare 4 Free-Tier LLMs** from Groq, Google Gemini, and OpenRouter
-        - **Implement RAG-based evaluation** with 70% context coverage
-        - **Conduct blind human evaluations** by external testers
-        - **Automated technical performance** monitoring
-        - **Focus on Retail & Finance** business analysis
+        ### 🔬 Research Methodology
+        
+        **Dual Evaluation Approach:**
+        - **Human Blind Evaluation**: External testers evaluate AI responses without knowing 
+          which model generated each answer
+        - **Automated Technical Assessment**: Continuous monitoring of latency, throughput, 
+          and reliability metrics
+        
+        **Retrieval-Augmented Generation (RAG):**
+        - Responses grounded in real business datasets
+        - 70% context coverage target for factual accuracy
+        - Industry-specific knowledge base integration
+        
+        **Data-Driven Insights:**
+        - Real e-commerce shopping trends dataset (3,900+ records)
+        - Tesla stock market analysis data (2010-2025)
+        - Comprehensive business scenarios and use cases
         """)
     
     with col2:
-        st.subheader("🏗️ System Architecture")
         st.markdown("""
-        - **Streamlit Cloud** deployment platform
-        - **Modular RAG pipeline** for grounded responses
-        - **Vector database** for efficient retrieval
-        - **Secure access control** for different user roles
-        - **Cloud-first design** principles
+        ### 🎯 Key Features
+        
+        **LLM Providers Evaluated:**
+        - **Groq**: High-speed inference optimization
+        - **Google Gemini**: Advanced reasoning capabilities  
+        - **OpenRouter**: Multi-model access platform
+        - **Four distinct models** selected for comprehensive comparison
+        
+        **Evaluation Focus Areas:**
+        - Response quality and clarity
+        - Factual accuracy vs. ground truth
+        - Business relevance and actionability
+        - Consistency and organization
+        
+        **Target Industries:**
+        - **Retail**: Customer behavior, sales analysis, inventory insights
+        - **Finance**: Market trends, risk assessment, investment analysis
         """)
     
-    st.header("🚀 Current Status")
+    # Call to action section
+    st.markdown("---")
     
-    # Status indicators
-    status_items = [
-        ("Project Initialization", "✅", "Complete"),
-        ("Streamlit Cloud Setup", "⏳", "In Progress"),
-        ("LLM Integration", "📋", "Planned"),
-        ("RAG Pipeline", "📋", "Planned"),
-        ("Blind Evaluation System", "📋", "Planned"),
-        ("Automated Monitoring", "📋", "Planned")
-    ]
+    cta_col1, cta_col2, cta_col3 = st.columns([1, 2, 1])
     
-    for item, icon, status in status_items:
-        col1, col2, col3 = st.columns([3, 1, 2])
-        col1.write(f"{icon} {item}")
-        col2.write(status)
+    with cta_col2:
+        st.markdown("""
+        ### 🚀 Participate in the Research
+        
+        **For External Evaluators:**
+        Your participation helps advance AI evaluation methodologies and provides organizations 
+        with evidence-based guidance for LLM selection in business contexts.
+        
+        **Time Commitment:** 20-30 minutes  
+        **Evaluation Process:** Blind comparison of AI responses to business questions  
+        **Impact:** Contribute to research that guides real-world AI adoption decisions  
+        """)
+        
+        if st.button("🔍 Start Blind Evaluation", type="primary", use_container_width=True):
+            st.session_state["current_page"] = "Blind Evaluation"
+            st.rerun()
+    
+    # Research significance
+    st.markdown("---")
+    st.markdown("""
+    ## 🎓 Research Significance
+    
+    This study contributes to the growing field of AI evaluation by:
+    
+    - **Advancing Evaluation Methodologies**: Combining human judgment with automated metrics 
+      for comprehensive LLM assessment
+    - **Industry-Specific Insights**: Providing targeted evaluation for business intelligence applications
+    - **Open Research**: Transparent methodology and findings to benefit the broader research community
+    - **Practical Applications**: Direct relevance for organizations making AI adoption decisions
+    
+    ### 📊 Expected Outcomes
+    
+    - **Comparative Performance Rankings** of free-tier LLMs in business contexts
+    - **Best Practice Recommendations** for LLM selection and implementation  
+    - **Evaluation Framework** that can be applied to future LLM assessments
+    - **Open Dataset** of business-focused LLM evaluation results
+    """)
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #666; font-size: 0.9rem;">
+    🎓 <strong>Academic Research Project</strong> | 
+    Advancing AI Evaluation for Business Intelligence | 
+    Your participation contributes to open research
+    </div>
+    """, unsafe_allow_html=True)
 
 def show_system_status():
     """Display system status and configuration check"""
