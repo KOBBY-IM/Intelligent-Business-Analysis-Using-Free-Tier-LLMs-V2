@@ -20,6 +20,31 @@ if not enforce_page_access("Blind Evaluation Analysis", required_role="admin"):
     st.stop()
 
 # ---- DATA PROCESSING FUNCTIONS ----
+def get_actual_model_name(response_id: str, model_mapping: dict = None) -> str:
+    """
+    Get actual model name from response ID with fallback mapping.
+    
+    Args:
+        response_id: Anonymous response ID (A, B, C, D)
+        model_mapping: Dictionary mapping response_id to actual model name
+    
+    Returns:
+        Actual model name or fallback name
+    """
+    # First try to use provided mapping
+    if model_mapping and response_id in model_mapping:
+        return model_mapping[response_id]
+    
+    # Fallback mapping for when model_mapping is not available
+    fallback_mapping = {
+        "A": "groq:llama3-70b-8192",
+        "B": "groq:mixtral-8x7b-32768", 
+        "C": "openrouter:anthropic/claude-3-haiku",
+        "D": "openrouter:meta-llama/llama-3-8b-instruct"
+    }
+    
+    return fallback_mapping.get(response_id, f"Model {response_id}")
+
 def flatten_ratings_data(df):
     """
     Flatten nested ratings data structure for analysis.
@@ -71,7 +96,7 @@ def flatten_ratings_data(df):
                                         if model_mapping and response_id in model_mapping:
                                             new_row['llm_model'] = model_mapping[response_id]
                                         else:
-                                            new_row['llm_model'] = f"Model {response_id}"  # Fallback
+                                            new_row['llm_model'] = get_actual_model_name(response_id, model_mapping) # Use fallback
                                             
                                         flattened_rows.append(new_row)
                                         has_valid_ratings = True
@@ -96,7 +121,7 @@ def flatten_ratings_data(df):
                         new_row['accuracy'] = rating_data.get('accuracy', None)
                         new_row['uniformity'] = rating_data.get('uniformity', None)
                         # Use response_id as model identifier since this is blind evaluation
-                        new_row['llm_model'] = f"Model {response_id}"
+                        new_row['llm_model'] = get_actual_model_name(response_id)  # Use fallback mapping
                         flattened_rows.append(new_row)
                         has_valid_ratings = True
                 
