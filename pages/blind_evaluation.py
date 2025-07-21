@@ -26,7 +26,8 @@ if st.session_state.get("redirect_to_home", False):
     for key in ["user_email", "tester_name", "user_name", "user_role", "evaluation_session", "final_feedback"]:
         if key in st.session_state:
             del st.session_state[key]
-    st.switch_page("/")
+    # Use the correct path for main app
+    st.switch_page("app.py")
 
 def load_evaluation_data() -> Tuple[Dict, List[Dict]]:
     """
@@ -1265,29 +1266,32 @@ def show_registration_form():
     """, unsafe_allow_html=True)
 
 def show_evaluation_interface():
-    # Auto-scroll to top after question submit
+    """Main function to display the blind evaluation interface."""
+    
+    # Handle auto-scroll to top after question submit
     if st.session_state.get("scroll_to_top", False):
+        # Use a more reliable scroll method with immediate execution
         st.markdown(
-            """<script>
-            window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
-            </script>""",
+            """
+            <script>
+            setTimeout(function() {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+            }, 100);
+            </script>
+            """,
             unsafe_allow_html=True,
         )
+        # Show success message
+        st.success("✅ Question submitted successfully! Here's your next question:")
+        # Clear the flag
         st.session_state["scroll_to_top"] = False
-    """Main function to display the blind evaluation interface."""
     
     # Check if user is registered
     if not st.session_state.get("user_email"):
         show_registration_form()
         return
-    
-    # Show clear indicator if flag is set (after question submission)
-    if st.session_state.get("scroll_to_top", False):
-        # Simple success message
-        st.success("✅ Question submitted successfully! Here's your next question:")
-        
-        # Clear the flag
-        st.session_state["scroll_to_top"] = False
     
     # Load evaluation data
     questions, responses = load_evaluation_data()
