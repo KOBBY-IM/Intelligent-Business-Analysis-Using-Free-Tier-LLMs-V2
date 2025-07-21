@@ -19,6 +19,15 @@ st.set_page_config(
     layout="wide"
 )
 
+# Handle redirect to home at the very top (before any UI rendering)
+if st.session_state.get("redirect_to_home", False):
+    # Clear redirect flag and session state
+    st.session_state["redirect_to_home"] = False
+    for key in ["user_email", "tester_name", "user_name", "user_role", "evaluation_session", "final_feedback"]:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.switch_page("/")
+
 def load_evaluation_data() -> Tuple[Dict, List[Dict]]:
     """
     Load evaluation questions and pregenerated responses.
@@ -287,27 +296,27 @@ def display_question_and_responses(question: str, industry: str, responses: List
         responses: List of responses to display (should be shuffled)
         question_number: The current question number (optional)
     """
-    # Question header with larger font
+    # Question header with smaller font
     if question_number is not None:
         st.markdown(f"""
-        <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: #1f77b4;">
+        <h2 style="font-size: 1.6rem; margin-bottom: 1rem; color: #1f77b4;">
         🎯 Question {question_number} of 6 ({industry.title()} Industry)
         </h2>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: #1f77b4;">
+        <h2 style="font-size: 1.6rem; margin-bottom: 1rem; color: #1f77b4;">
         🎯 Question ({industry.title()} Industry)
         </h2>
         """, unsafe_allow_html=True)
     
-    # Question text with much larger, prominent font
+    # Question text with smaller, more compact font and box
     st.markdown(f"""
-    <div style="background-color: #f8f9fa; border: 2px solid #1f77b4; border-radius: 10px; padding: 25px; margin: 20px 0;">
-        <h3 style="font-size: 1.8rem; margin-bottom: 1rem; color: #2c3e50;">
+    <div style="background-color: #f8f9fa; border: 2px solid #1f77b4; border-radius: 10px; padding: 15px; margin: 20px 0;">
+        <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: #2c3e50;">
         📋 Business Question:
         </h3>
-        <p style="font-size: 1.6rem; line-height: 1.6; font-weight: 500; color: #34495e;">
+        <p style="font-size: 1.1rem; line-height: 1.4; font-weight: 500; color: #34495e;">
         {question}
         </p>
     </div>
@@ -1032,8 +1041,9 @@ def show_completion_message():
             tester_email = st.session_state.get("user_email")
             if tester_email:
                 mark_evaluation_completed(tester_email)
-            # Redirect to home app after final assessment
-            st.switch_page("/")
+            # Set redirect flag and stop execution
+            st.session_state["redirect_to_home"] = True
+            st.stop()
     
     # Option to reset for testing (remove in production)
     if st.button("🔄 Reset Evaluation (Testing Only)", help="Reset evaluation session for testing"):
@@ -1447,11 +1457,4 @@ def show_evaluation_interface():
 
 # Main execution
 if __name__ == "__main__":
-    # At the very top of the file, after imports and before any UI rendering:
-    if st.session_state.get("redirect_to_start"):
-        for key in ["user_email", "tester_name", "user_name", "user_role", "evaluation_session", "final_feedback", "redirect_to_start"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.experimental_rerun()
-
     show_evaluation_interface() 
