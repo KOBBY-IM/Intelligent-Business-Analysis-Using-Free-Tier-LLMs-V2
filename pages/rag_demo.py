@@ -5,6 +5,7 @@ from utils.prompts import build_prompt
 from utils.llm_clients import get_llm_client
 import os
 import pandas as pd
+import tempfile
 
 # Page configuration
 st.set_page_config(
@@ -17,10 +18,10 @@ st.title("🤖 RAG-Enhanced LLM Demo")
 st.markdown("""
 This demo illustrates how Retrieval-Augmented Generation (RAG) enhances LLM responses for business analysis.
 
-1. Select an industry and enter a business question
-2. Choose an LLM model
-3. See retrieved context from the dataset
-4. View the generated response
+1. Select an industry and (optionally) upload a CSV dataset
+2. Enter a business question
+3. Click 'Generate Responses' to see all LLMs answer side by side
+4. View the retrieved context, prompt, and generated response for each LLM
 """)
 
 # Industry selection
@@ -30,6 +31,25 @@ industry = st.selectbox(
     help="Choose the business sector for analysis"
 )
 
+# File uploader for custom dataset
+st.markdown("**Optional: Upload a custom CSV dataset for this industry**")
+file_key = f"uploaded_{industry}_csv"
+uploaded_file = st.file_uploader(
+    f"Upload {industry.title()} CSV Dataset",
+    type=["csv"],
+    key=file_key
+)
+
+# Store uploaded file in session state for the industry
+if uploaded_file is not None:
+    # Save to a temporary file for this session
+    temp_dir = tempfile.gettempdir()
+    temp_path = os.path.join(temp_dir, f"rag_demo_{industry}.csv")
+    with open(temp_path, "wb") as f:
+        f.write(uploaded_file.read())
+    st.session_state[file_key] = temp_path
+    st.success(f"Custom {industry} dataset uploaded and will be used for RAG.")
+
 # Question input
 question = st.text_input(
     "Enter your business question",
@@ -37,65 +57,53 @@ question = st.text_input(
     help="Ask a question related to the selected industry"
 )
 
-# LLM selection
 llm_options = [
     {"provider": "groq", "model": "llama3-70b-8192"},
     {"provider": "groq", "model": "moonshotai/kimi-k2-instruct"},
     {"provider": "openrouter", "model": "mistralai/mistral-7b-instruct"},
     {"provider": "openrouter", "model": "deepseek/deepseek-r1-0528-qwen3-8b"}
 ]
-selected_llm = st.selectbox(
-    "Select LLM Model",
-    [f"{llm['provider']}: {llm['model']}" for llm in llm_options]
-)
 
-if st.button("Generate Response", type="primary"):
+if st.button("Generate Responses", type="primary"):
     if not question:
         st.error("Please enter a question.")
     else:
-        with st.spinner("Retrieving context and generating response..."):
-            # Get dataset path
+        with st.spinner("Retrieving context and generating responses from all LLMs..."):
+            # Determine dataset path (uploaded or default)
             dataset_paths = {
                 "retail": "data/shopping_trends_with_rag.csv",
                 "finance": "data/Tesla_stock_data_with_rag.csv"
             }
-            dataset_path = dataset_paths[industry]
-            
+            file_path = st.session_state.get(file_key)
+            if not file_path:
+                file_path = dataset_paths[industry]
+
             # Build or load RAG index (in-memory mode for Streamlit Cloud)
             rag_index = build_rag_index(
-                dataset_path,
+                file_path,
                 dataset_type="csv",
                 text_column="RAG_Text",
                 persist_path=None  # In-memory only
             )
-            
-            # Get embedding model
             embedding_model = get_embedding_model()
-            
-            # Retrieve context
             context_chunks = retrieve_context(question, rag_index, embedding_model, top_k=5)
-            
-            # Build prompt
             prompt = build_prompt(question, context_chunks)
-            
-            # Get LLM client
-            selected_idx = [i for i, opt in enumerate(llm_options) if f"{opt['provider']}: {opt['model']}" == selected_llm][0]
-            llm = llm_options[selected_idx]
-            client = get_llm_client(llm["provider"], llm["model"])
-            
-            # Generate response
-            response = client.generate(prompt)
-            
-            # Display results
-            st.subheader("Retrieved Context")
-            for i, chunk in enumerate(context_chunks, 1):
-                with st.expander(f"Context Chunk {i}"):
-                    st.json(chunk)
-            
-            st.subheader("Generated Prompt")
-            st.text_area("Prompt", prompt, height=200)
-            
-            st.subheader("LLM Response")
-            st.markdown(response)
+
+            # Generate responses from all LLMs
+            cols = st.columns(4)
+            for i, llm in enumerate(llm_options):
+                with cols[i]:
+                    st.markdown(f"### {llm['provider'].capitalize()}<br><span style='font-size:0.9rem'>{llm['model']}</span>", unsafe_allow_html=True)
+                    try:
+                        client = get_llm_client(llm["provider"], llm["model"])
+                        response = client.generate(prompt)
+                    except Exception as e:
+                        response = f"❌ Error: {str(e)}"
+                    st.subheader("LLM Response")
+                    st.markdown(f'''
+                        <div style="font-size: 1.0rem; line-height: 1.5; padding: 12px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; max-height: 350px; overflow-y: auto; min-height: 100px;">
+                        {response}
+                        </div>
+                    ''', unsafe_allow_html=True)
 else:
-    st.info("Enter a question and select an LLM to generate a response.") 
+    st.info("Enter a question and click 'Generate Responses' to see all LLMs answer side by side.") 
