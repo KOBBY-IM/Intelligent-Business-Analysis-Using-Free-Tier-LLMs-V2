@@ -268,30 +268,38 @@ def create_qualitative_feedback_table(data):
 
 # ---- SIDEBAR FILTERS ----
 def create_sidebar_filters(human_df):
-    """Create sidebar filters for blind evaluation analysis"""
     st.sidebar.title("🎛️ Blind Evaluation Filters")
-    
     # Real-time update controls
     st.sidebar.subheader("🔄 Real-Time Updates")
     auto_refresh = st.sidebar.checkbox("Auto-refresh (5 min)", value=True)
     if st.sidebar.button("🔄 Manual Refresh"):
         st.cache_data.clear()
         st.rerun()
-    
+
     # Blind Evaluation Filters
     if not human_df.empty:
-        industries = sorted(human_df['current_industry'].unique()) if 'current_industry' in human_df.columns else []
+        # Robust industry extraction
+        if 'current_industry' in human_df.columns:
+            try:
+                industries = sorted([
+                    x for x in human_df['current_industry'].dropna().unique()
+                    if isinstance(x, str) and x.strip()
+                ])
+            except Exception:
+                industries = []
+        else:
+            industries = []
         industry_filter = st.sidebar.multiselect("Industry", industries, default=industries, key="blind_industry")
-        
+
         llm_models = sorted(human_df['llm_model'].unique()) if 'llm_model' in human_df.columns else []
         llm_filter = st.sidebar.multiselect("LLM Model", llm_models, default=llm_models, key="blind_llm")
-        
+
         min_ratings = st.sidebar.slider("Minimum Rating", 1.0, 5.0, 1.0, 0.1, key="blind_ratings")
     else:
         industry_filter = []
         llm_filter = []
         min_ratings = 1.0
-    
+
     return {
         'auto_refresh': auto_refresh,
         'industry': industry_filter,
