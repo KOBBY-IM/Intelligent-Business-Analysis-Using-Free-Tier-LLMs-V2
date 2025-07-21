@@ -29,9 +29,18 @@ def load_technical_metrics_data():
         from google.oauth2 import service_account
         
         # Get credentials from Streamlit secrets
+        service_account_info = None
+        bucket_name = None
+        
+        # Check for different secret key formats
         if "gcp_service_account" in st.secrets:
             service_account_info = st.secrets["gcp_service_account"]
-            
+            bucket_name = st.secrets.get("gcs_bucket_name", "llm-evaluation-data")
+        elif "gcs" in st.secrets and "service_account" in st.secrets["gcs"]:
+            service_account_info = st.secrets["gcs"]["service_account"]
+            bucket_name = st.secrets["gcs"].get("bucket_name", "llm-evaluation-data")
+        
+        if service_account_info:
             # Handle case where service account is stored as string
             if isinstance(service_account_info, str):
                 service_account_info = json.loads(service_account_info)
@@ -40,8 +49,10 @@ def load_technical_metrics_data():
             credentials = service_account.Credentials.from_service_account_info(service_account_info)
             client = storage.Client(credentials=credentials)
             
-            # Get bucket name
-            bucket_name = st.secrets.get("gcs_bucket_name", "llm-evaluation-data")
+            # Check if bucket exists
+            if not bucket_name:
+                bucket_name = "llm-evaluation-data"  # fallback
+            
             bucket = client.bucket(bucket_name)
             
             # Check if bucket exists
@@ -72,9 +83,9 @@ def load_technical_metrics_data():
                     st.info(f"🔍 Available files in bucket: {blob_names}")
                 else:
                     st.info("🔍 No batch evaluation files found in bucket")
-                    
         else:
-            st.warning("⚠️ GCS credentials (gcp_service_account) not found in Streamlit secrets")
+            st.warning("⚠️ GCS credentials not found in Streamlit secrets")
+            st.info("💡 Looking for 'gcp_service_account' or 'gcs.service_account' in secrets")
             
     except ImportError:
         st.warning("⚠️ Google Cloud Storage library not available - using local fallback")
