@@ -9,7 +9,7 @@ import streamlit as st
 import json
 import random
 from typing import List, Dict, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 # Page configuration
@@ -95,7 +95,7 @@ def create_sample_responses(questions: Dict) -> List[Dict]:
                     "context": [f"Sample {industry} context 1", f"Sample {industry} context 2"],
                     "prompt": f"Sample prompt for {question}",
                     "error": None,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
     
     return sample_responses
@@ -420,7 +420,9 @@ def display_question_and_responses(question: str, industry: str, responses: List
             )
         
         # Store ratings in session state (without comments)
-        st.session_state[f"ratings_{anonymous_id}"] = {
+        # Extract just the letter (A, B, C, D) from anonymous_id
+        rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
+        st.session_state[f"ratings_{rating_key}"] = {
             "quality": quality_rating,
             "relevance": relevance_rating,
             "accuracy": accuracy_rating,
@@ -749,7 +751,7 @@ def collect_evaluation_data() -> Dict:
     evaluation_data = {
         "tester_email": st.session_state.get("user_email"),
         "tester_name": st.session_state.get("tester_name"),
-        "evaluation_timestamp": datetime.utcnow().isoformat(),
+        "evaluation_timestamp": datetime.now(timezone.utc).isoformat(),
         "current_question": st.session_state.get("current_evaluation_question"),
         "current_industry": st.session_state.get("current_evaluation_industry"),
         "ratings": {}
@@ -786,7 +788,7 @@ def collect_final_evaluation_data() -> Dict:
     evaluation_data = {
         "tester_email": st.session_state.get("user_email"),
         "tester_name": st.session_state.get("tester_name"),
-        "evaluation_timestamp": datetime.utcnow().isoformat(),
+        "evaluation_timestamp": datetime.now(timezone.utc).isoformat(),
         "evaluation_type": "final_assessment",
         "questions_evaluated": {
             "retail_count": retail_count,
@@ -857,7 +859,7 @@ def mark_evaluation_completed(email: str):
         if email in registrations:
             # Mark as completed
             registrations[email]["evaluation_completed"] = True
-            registrations[email]["evaluation_completed_timestamp"] = datetime.utcnow().isoformat()
+            registrations[email]["evaluation_completed_timestamp"] = datetime.now(timezone.utc).isoformat()
             
             # Save back to GCS
             success = data_store.save_registration_data(registrations[email])
@@ -870,7 +872,7 @@ def mark_evaluation_completed(email: str):
             # Also update session state if available
             if "tester_registrations" in st.session_state and email in st.session_state["tester_registrations"]:
                 st.session_state["tester_registrations"][email]["evaluation_completed"] = True
-                st.session_state["tester_registrations"][email]["evaluation_completed_timestamp"] = datetime.utcnow().isoformat()
+                st.session_state["tester_registrations"][email]["evaluation_completed_timestamp"] = datetime.now(timezone.utc).isoformat()
                 
     except Exception as e:
         st.error(f"Error marking evaluation as completed: {str(e)}")
@@ -1250,6 +1252,7 @@ def show_registration_form():
                         
                         # Set current user
                         st.session_state["user_email"] = email
+                        st.session_state["tester_name"] = name  # Use consistent key
                         st.session_state["user_name"] = name
                         st.session_state["user_role"] = "tester"  # Set user role as tester
                         
@@ -1429,6 +1432,10 @@ def show_evaluation_interface():
     if question_responses:
         # Shuffle responses for anonymity
         shuffled_responses = shuffle_responses(question_responses)
+        
+        # Set current question context in session state for data collection
+        st.session_state["current_evaluation_question"] = current_question
+        st.session_state["current_evaluation_industry"] = current_industry
         
         # Display question and responses
         question_count = len(selected_questions[current_industry])

@@ -586,14 +586,14 @@ else:
         rate_limit_fig = create_rate_limit_analysis(filtered_tech)
         if rate_limit_fig:
             st.plotly_chart(rate_limit_fig, use_container_width=True)
-    
-        # ---- ADDITIONAL METRIC DISTRIBUTIONS ----
-        st.header("🧮 Additional Metric Distributions")
-        if not filtered_tech.empty:
-            add_fig, rate_fig, err_fig = create_additional_metric_distributions(filtered_tech)
-            if add_fig:
-                st.plotly_chart(add_fig, use_container_width=True)
-            if rate_fig:
+
+    # ---- ADDITIONAL METRIC DISTRIBUTIONS ----
+    st.header("🧮 Additional Metric Distributions")
+    if not filtered_tech.empty:
+        add_fig, rate_fig, err_fig = create_additional_metric_distributions(filtered_tech)
+        if add_fig:
+            st.plotly_chart(add_fig, use_container_width=True)
+        if rate_fig:
             st.plotly_chart(rate_fig, use_container_width=True)
         if err_fig:
             st.plotly_chart(err_fig, use_container_width=True)

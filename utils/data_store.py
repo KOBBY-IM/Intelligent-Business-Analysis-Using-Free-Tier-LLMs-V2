@@ -9,7 +9,7 @@ import json
 import csv
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Union
 import streamlit as st
 import pandas as pd
@@ -478,7 +478,7 @@ class DataStore:
                 "google_cloud": GOOGLE_CLOUD_AVAILABLE,
                 "google_drive": GOOGLE_DRIVE_AVAILABLE
             },
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         if self.storage_type == "gcs" and self.storage_client:

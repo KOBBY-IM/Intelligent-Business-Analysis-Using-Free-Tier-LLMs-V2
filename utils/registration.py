@@ -12,7 +12,7 @@ import streamlit as st
 import re
 import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional, List, Tuple
 import logging
 import os
@@ -298,7 +298,7 @@ def create_registration_record(name: str, email: str, consent_given: bool) -> Di
     Returns:
         Dictionary containing registration record
     """
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     
     return {
         "name": name.strip(),

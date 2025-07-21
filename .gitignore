@@ -87,10 +87,13 @@ htmlcov/
 .dmypy.json
 dmypy.json 
 
-#cursor
+# Cursor IDE files (local only)
 .cursor/
 
-#streamlit
+# Documentation (local only)
+docs/
+
+# Streamlit secrets
 .streamlit/secrets.toml
 
 # Ignore environment variable and secrets files

@@ -20,8 +20,7 @@ from utils.data_store import (
     DataStore, 
     create_data_store, 
     validate_evaluation_data, 
-    validate_registration_data,
-    _evaluations_to_dataframe
+    validate_registration_data
 )
 
 

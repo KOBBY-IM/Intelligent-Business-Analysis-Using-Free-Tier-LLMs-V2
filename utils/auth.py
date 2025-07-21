@@ -9,7 +9,7 @@ This module provides secure role-based authentication for:
 import streamlit as st
 import hashlib
 from typing import Optional, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 
 # User roles
 Role = Literal["tester", "admin", None]
@@ -95,7 +95,7 @@ def set_user_session(role: Role, email: Optional[str] = None):
     st.session_state["user_role"] = role
     if email:
         st.session_state["user_email"] = email
-    st.session_state["login_timestamp"] = datetime.utcnow().isoformat()
+    st.session_state["login_timestamp"] = datetime.now(timezone.utc).isoformat()
 
 def clear_user_session():
     """Clear user session data on logout."""

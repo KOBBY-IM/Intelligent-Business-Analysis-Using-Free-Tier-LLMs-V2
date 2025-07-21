@@ -2,8 +2,9 @@ import os
 import json
 import time
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any
+import pandas as pd # Added for appending to CSV
 
 # --- BEGIN: Streamlit secrets GCS credential support ---
 def setup_gcs_credentials():
@@ -153,16 +154,54 @@ def upload_to_gcs(local_path: str, bucket_name: str, blob_name: str):
     print(f"Uploaded {local_path} to gs://{bucket_name}/{blob_name}")
 
 def save_json(data: List[Dict[str, Any]], path: str):
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2)
+    if not data:
+        return
+    
+    # If file exists, load existing data and combine with new data
+    if os.path.exists(path):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                existing_data = json.load(f)
+            combined_data = existing_data + data
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(combined_data, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not append to existing JSON, overwriting: {e}")
+            # Fallback to overwrite if there's an issue
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+    else:
+        # Create new file
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
 
 def save_csv(data: List[Dict[str, Any]], path: str):
     if not data:
         return
-    with open(path, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=list(data[0].keys()))
-        writer.writeheader()
-        writer.writerows(data)
+    
+    # Check if file exists to determine if we need to write header
+    file_exists = os.path.exists(path)
+    
+    # If file exists, load existing data and combine with new data
+    if file_exists:
+        try:
+            existing_df = pd.read_csv(path)
+            new_df = pd.DataFrame(data)
+            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+            combined_df.to_csv(path, index=False)
+        except Exception as e:
+            print(f"Warning: Could not append to existing CSV, overwriting: {e}")
+            # Fallback to overwrite if there's an issue
+            with open(path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=list(data[0].keys()))
+                writer.writeheader()
+                writer.writerows(data)
+    else:
+        # Create new file
+        with open(path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=list(data[0].keys()))
+            writer.writeheader()
+            writer.writerows(data)
 
 def compute_coverage(answer: str, context_chunks: list) -> float:
     """Compute the fraction of answer words that appear in the context."""
@@ -217,7 +256,7 @@ def main():
     selected = random.sample(all_questions, min(5, len(all_questions)))
     # Main evaluation loop
     all_metrics = []
-    batch_timestamp = datetime.utcnow().isoformat() + 'Z'
+    batch_timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
     for industry, q in selected:
         rag_index = rag_indices[industry]
         embedding_model = embedding_models[industry]

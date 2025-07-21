@@ -19,6 +19,80 @@ st.set_page_config(page_title="Blind Evaluation Analysis", layout="wide")
 if not enforce_page_access("Blind Evaluation Analysis", required_role="admin"):
     st.stop()
 
+# ---- DATA PROCESSING FUNCTIONS ----
+def flatten_ratings_data(df):
+    """
+    Flatten nested ratings data structure for analysis.
+    
+    Converts nested ratings format:
+    {'ratings': {'A': {'quality': 4, 'relevance': 5}, 'B': {...}}}
+    
+    To flat format with one row per response:
+    quality: 4, relevance: 5, response_id: 'A', llm_model: 'groq:llama3-70b-8192'
+    """
+    if df.empty:
+        return df
+    
+    flattened_rows = []
+    empty_ratings_count = 0
+    total_records = len(df)
+    
+    for _, row in df.iterrows():
+        try:
+            base_data = row.to_dict()
+            ratings = base_data.pop('ratings', {})
+            
+            # Handle different types of ratings data
+            if ratings and isinstance(ratings, dict) and len(ratings) > 0:
+                # Valid ratings found
+                has_valid_ratings = False
+                for response_id, rating_data in ratings.items():
+                    if isinstance(rating_data, dict) and len(rating_data) > 0:
+                        new_row = base_data.copy()
+                        new_row['response_id'] = response_id
+                        new_row['quality'] = rating_data.get('quality', None)
+                        new_row['relevance'] = rating_data.get('relevance', None) 
+                        new_row['accuracy'] = rating_data.get('accuracy', None)
+                        new_row['uniformity'] = rating_data.get('uniformity', None)
+                        new_row['llm_model'] = rating_data.get('response_id', 'unknown')
+                        flattened_rows.append(new_row)
+                        has_valid_ratings = True
+                
+                if not has_valid_ratings:
+                    empty_ratings_count += 1
+            else:
+                # Empty or invalid ratings
+                empty_ratings_count += 1
+                # Still create a record for tracking purposes
+                base_data['response_id'] = 'no_ratings'
+                base_data['quality'] = None
+                base_data['relevance'] = None
+                base_data['accuracy'] = None
+                base_data['uniformity'] = None
+                base_data['llm_model'] = 'unknown'
+                flattened_rows.append(base_data)
+                
+        except Exception as e:
+            # Handle any unexpected data format issues
+            st.warning(f"Warning: Error processing row {len(flattened_rows)}: {str(e)}")
+            continue
+    
+    # Create flattened DataFrame
+    result_df = pd.DataFrame(flattened_rows)
+    
+    # Add data quality info to session state for display
+    if 'data_quality_info' not in st.session_state:
+        st.session_state['data_quality_info'] = {}
+    
+    st.session_state['data_quality_info'].update({
+        'total_records': total_records,
+        'empty_ratings_count': empty_ratings_count,
+        'valid_ratings_count': total_records - empty_ratings_count,
+        'flattened_rows': len(result_df)
+    })
+    
+    return result_df
+
 # ---- GCS DATA RETRIEVAL ----
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_blind_evaluation_data():
@@ -38,6 +112,9 @@ def load_blind_evaluation_data():
                     for col in ['timestamp', 'evaluation_timestamp']:
                         if col in human_df.columns:
                             human_df[col] = pd.to_datetime(human_df[col])
+                    
+                    # Flatten nested ratings structure for analysis
+                    human_df = flatten_ratings_data(human_df)
                     
                     st.success(f"📊 Loaded {len(human_df)} blind evaluation records from GCS")
                     return human_df
@@ -63,6 +140,9 @@ def load_blind_evaluation_data():
                 if col in human_df.columns:
                     human_df[col] = pd.to_datetime(human_df[col])
             
+            # Flatten nested ratings structure for analysis
+            human_df = flatten_ratings_data(human_df)
+            
             st.info(f"📊 Using local blind evaluation data ({len(human_df)} records)")
             return human_df
     except Exception as e:
@@ -80,6 +160,9 @@ def load_blind_evaluation_data():
             for col in ['timestamp', 'evaluation_timestamp']:
                 if col in human_df.columns:
                     human_df[col] = pd.to_datetime(human_df[col])
+            
+            # Flatten nested ratings structure for analysis
+            human_df = flatten_ratings_data(human_df)
             
             st.info(f"📈 Using sample blind evaluation data ({len(human_df)} records)")
             return human_df
@@ -235,6 +318,30 @@ st.info(f"📅 Last updated: {last_update.strftime('%Y-%m-%d %H:%M:%S')}")
 # ---- DATA OVERVIEW ----
 st.header("📊 Data Overview")
 
+# Display data quality information
+if 'data_quality_info' in st.session_state:
+    info = st.session_state['data_quality_info']
+    
+    if info['empty_ratings_count'] > 0:
+        st.warning(f"""
+        ⚠️ **Data Quality Notice**: {info['empty_ratings_count']} out of {info['total_records']} evaluation records contain empty ratings.
+        
+        This typically happens when:
+        - Data was collected before the rating system fixes were applied
+        - There were technical issues during evaluation submission
+        
+        **Action needed**: New evaluations will contain complete rating data for full analysis.
+        """)
+    
+    # Show data breakdown
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("📋 Total Records", info['total_records'])
+    with col2:
+        st.metric("✅ Complete Ratings", info['valid_ratings_count'])
+    with col3:
+        st.metric("❌ Empty Ratings", info['empty_ratings_count'])
+
 if human_df.empty:
     st.warning("⚠️ No blind evaluation data available. Please complete some evaluations first.")
 else:
@@ -265,7 +372,10 @@ else:
         rating_cols = ['quality', 'relevance', 'accuracy', 'uniformity']
         available_ratings = [col for col in rating_cols if col in filtered_human.columns]
         
-        if available_ratings:
+        # Check if we have any actual rating data
+        complete_ratings = filtered_human[filtered_human['quality'].notna()] if 'quality' in filtered_human.columns else pd.DataFrame()
+        
+        if available_ratings and not complete_ratings.empty:
             # Calculate statistics
             stats_summary = filtered_human[available_ratings].describe()
             
@@ -295,49 +405,72 @@ else:
                 st.write("**Confidence Intervals (95%):**")
                 st.dataframe(ci_df, use_container_width=True)
     
+        elif available_ratings and complete_ratings.empty:
+            st.info("""
+            📊 **Rating Analysis Not Available**
+            
+            The evaluation records in the database do not contain individual response ratings. This can happen when:
+            
+            - Evaluations were submitted before the rating collection system was fully implemented
+            - There were technical issues during data submission
+            
+            **What you can still see:**
+            - Overall evaluation summary from final assessments
+            - Tester participation statistics
+            - Question completion tracking
+            
+            **For complete analysis**: New evaluations will include detailed ratings for each LLM response (A, B, C, D).
+            """)
+        else:
+            st.info("ℹ️ Rating analysis requires evaluation data with individual response ratings.")
+
     # ---- ADVANCED VISUALIZATIONS ----
     st.header("📊 Advanced Visualizations")
     
     if not filtered_human.empty:
-        # 1. Radar Chart
-        if 'llm_model' in filtered_human.columns and available_ratings:
-            radar_fig = create_radar_chart(filtered_human, filters['llm_model'], available_ratings)
-            if radar_fig:
-                st.plotly_chart(radar_fig, use_container_width=True)
+        # Check if we have complete rating data for visualizations
+        complete_ratings = filtered_human[filtered_human['quality'].notna()] if 'quality' in filtered_human.columns else pd.DataFrame()
         
-        # 2. Enhanced Boxplots with Confidence Intervals
-        if available_ratings:
-            st.write("**Rating Distributions with Confidence Intervals:**")
-            
-            fig = make_subplots(
-                rows=2, cols=2,
-                subplot_titles=available_ratings,
-                specs=[[{"secondary_y": False}, {"secondary_y": False}],
-                       [{"secondary_y": False}, {"secondary_y": False}]]
-            )
-            
-            for i, rating_col in enumerate(available_ratings):
-                row = (i // 2) + 1
-                col = (i % 2) + 1
+        if not complete_ratings.empty:
+            # 1. Radar Chart
+            if 'llm_model' in complete_ratings.columns and available_ratings:
+                radar_fig = create_radar_chart(complete_ratings, filters['llm_model'], available_ratings)
+                if radar_fig:
+                    st.plotly_chart(radar_fig, use_container_width=True)
+        
+            # 2. Enhanced Boxplots with Confidence Intervals
+            if available_ratings:
+                st.write("**Rating Distributions with Confidence Intervals:**")
                 
-                # Box plot
-                fig.add_trace(
-                    go.Box(y=filtered_human[rating_col], name=rating_col, showlegend=False),
-                    row=row, col=col
+                fig = make_subplots(
+                    rows=2, cols=2,
+                    subplot_titles=available_ratings,
+                    specs=[[{"secondary_y": False}, {"secondary_y": False}],
+                           [{"secondary_y": False}, {"secondary_y": False}]]
                 )
                 
-                # Confidence interval
-                ci_lower, ci_upper = calculate_confidence_intervals(filtered_human[rating_col].dropna())
-                if ci_lower is not None:
-                    fig.add_hline(y=ci_lower, line_dash="dash", line_color="red", 
-                                annotation_text=f"95% CI Lower: {ci_lower:.2f}",
-                                row=row, col=col)
-                    fig.add_hline(y=ci_upper, line_dash="dash", line_color="red",
-                                annotation_text=f"95% CI Upper: {ci_upper:.2f}",
-                                row=row, col=col)
-            
-            fig.update_layout(height=600, title_text="Rating Distributions with Confidence Intervals")
-            st.plotly_chart(fig, use_container_width=True)
+                for i, rating_col in enumerate(available_ratings):
+                    row = (i // 2) + 1
+                    col = (i % 2) + 1
+                    
+                    # Box plot
+                    fig.add_trace(
+                        go.Box(y=complete_ratings[rating_col], name=rating_col, showlegend=False),
+                        row=row, col=col
+                    )
+                    
+                    # Confidence interval
+                    ci_lower, ci_upper = calculate_confidence_intervals(complete_ratings[rating_col].dropna())
+                    if ci_lower is not None:
+                        fig.add_hline(y=ci_lower, line_dash="dash", line_color="red", 
+                                    annotation_text=f"95% CI Lower: {ci_lower:.2f}",
+                                    row=row, col=col)
+                        fig.add_hline(y=ci_upper, line_dash="dash", line_color="red",
+                                    annotation_text=f"95% CI Upper: {ci_upper:.2f}",
+                                    row=row, col=col)
+                
+                fig.update_layout(height=600, title_text="Rating Distributions with Confidence Intervals")
+                st.plotly_chart(fig, use_container_width=True)
         
         # 3. Statistical Significance Testing
         st.write("**Statistical Significance Tests:**")
@@ -356,40 +489,83 @@ else:
                 ])
                 st.dataframe(test_df, use_container_width=True)
         
-        # 4. LLM Performance Comparison
-        if 'llm_model' in filtered_human.columns and available_ratings:
-            st.write("**LLM Performance Comparison:**")
-            
-            # Calculate performance scores
-            performance_data = []
-            for model in filtered_human['llm_model'].unique():
-                model_data = filtered_human[filtered_human['llm_model'] == model]
-                scores = {}
+            # 4. LLM Performance Comparison
+            if 'llm_model' in complete_ratings.columns and available_ratings:
+                st.write("**LLM Performance Comparison:**")
+                
+                # Calculate performance scores
+                performance_data = []
+                for model in complete_ratings['llm_model'].unique():
+                    model_data = complete_ratings[complete_ratings['llm_model'] == model]
+                    scores = {}
+                    for rating_col in available_ratings:
+                        scores[rating_col] = model_data[rating_col].mean()
+                    scores['llm_model'] = model
+                    performance_data.append(scores)
+                
+                perf_df = pd.DataFrame(performance_data)
+                
+                # Create performance comparison chart
+                fig = go.Figure()
                 for rating_col in available_ratings:
-                    scores[rating_col] = model_data[rating_col].mean()
-                scores['llm_model'] = model
-                performance_data.append(scores)
+                    fig.add_trace(go.Bar(
+                        name=rating_col,
+                        x=perf_df['llm_model'],
+                        y=perf_df[rating_col],
+                        text=perf_df[rating_col].round(2),
+                        textposition='auto',
+                    ))
+                
+                fig.update_layout(
+                    title="LLM Performance Comparison by Rating Category",
+                    xaxis_title="LLM Model",
+                    yaxis_title="Average Rating",
+                    barmode='group'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            # Show alternative visualizations when we don't have complete rating data
+            st.info("""
+            🔄 **Limited Visualization Available**
             
-            perf_df = pd.DataFrame(performance_data)
+            Detailed rating visualizations require complete evaluation data. Currently showing basic statistics only.
             
-            # Create performance comparison chart
-            fig = go.Figure()
-            for rating_col in available_ratings:
-                fig.add_trace(go.Bar(
-                    name=rating_col,
-                    x=perf_df['llm_model'],
-                    y=perf_df[rating_col],
-                    text=perf_df[rating_col].round(2),
-                    textposition='auto',
-                ))
+            **Available Information:**
+            - Evaluation completion timeline
+            - Question coverage by industry
+            - Overall participation metrics
             
-            fig.update_layout(
-                title="LLM Performance Comparison by Rating Category",
-                xaxis_title="LLM Model",
-                yaxis_title="Average Rating",
-                barmode='group'
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            **For full analysis**: Complete evaluations with individual response ratings will unlock:
+            - LLM performance comparisons
+            - Statistical significance testing  
+            - Multi-dimensional radar charts
+            - Rating distribution analysis
+            """)
+            
+            # Show basic timeline of evaluations
+            if 'evaluation_timestamp' in filtered_human.columns:
+                st.subheader("📅 Evaluation Timeline")
+                
+                # Convert timestamps and plot
+                filtered_human['evaluation_timestamp'] = pd.to_datetime(filtered_human['evaluation_timestamp'])
+                timeline_data = filtered_human.groupby(filtered_human['evaluation_timestamp'].dt.date).size().reset_index()
+                timeline_data.columns = ['Date', 'Evaluations']
+                
+                fig = px.line(timeline_data, x='Date', y='Evaluations', 
+                             title="Daily Evaluation Submissions",
+                             markers=True)
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Show question coverage
+            if 'question_key' in filtered_human.columns:
+                st.subheader("📊 Question Coverage")
+                
+                question_counts = filtered_human['question_key'].value_counts().head(10)
+                fig = px.bar(x=question_counts.index, y=question_counts.values,
+                           title="Most Evaluated Questions",
+                           labels={'x': 'Question', 'y': 'Number of Evaluations'})
+                fig.update_xaxis(tickangle=45)
+                st.plotly_chart(fig, use_container_width=True)
         
         # 5. Qualitative Feedback Table
         st.write("**Qualitative Feedback Comments:**")
