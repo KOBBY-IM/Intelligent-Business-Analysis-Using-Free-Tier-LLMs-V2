@@ -305,6 +305,10 @@ st.title("👥 Blind Evaluation Analysis Dashboard")
 # Load data
 human_df = load_blind_evaluation_data()
 
+# Defensive: ensure human_df is always a DataFrame
+if not isinstance(human_df, pd.DataFrame):
+    human_df = pd.DataFrame()
+
 # Create sidebar filters
 filters = create_sidebar_filters(human_df)
 
