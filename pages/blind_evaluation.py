@@ -289,7 +289,7 @@ def display_dataset_overview():
 
 def display_question_and_responses(question: str, industry: str, responses: List[Dict], question_number: int = None):
     """
-    Display a question and its shuffled responses for evaluation with improved compact layout.
+    Display a question and its shuffled responses for evaluation.
     
     Args:
         question: The question to display
@@ -297,150 +297,140 @@ def display_question_and_responses(question: str, industry: str, responses: List
         responses: List of responses to display (should be shuffled)
         question_number: The current question number (optional)
     """
-    # Compact question header
+    # Question header with smaller font
     if question_number is not None:
         st.markdown(f"""
-        <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #1f77b4;">
+        <h2 style="font-size: 1.6rem; margin-bottom: 1rem; color: #1f77b4;">
         🎯 Question {question_number} of 6 ({industry.title()} Industry)
         </h2>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #1f77b4;">
+        <h2 style="font-size: 1.6rem; margin-bottom: 1rem; color: #1f77b4;">
         🎯 Question ({industry.title()} Industry)
         </h2>
         """, unsafe_allow_html=True)
     
-    # Compact question text box
+    # Question text with smaller, more compact font and box
     st.markdown(f"""
-    <div style="background-color: #f8f9fa; border: 1px solid #1f77b4; border-radius: 6px; padding: 10px; margin: 10px 0;">
-        <p style="font-size: 0.95rem; line-height: 1.3; font-weight: 500; color: #34495e; margin: 0;">
-        📋 <strong>Business Question:</strong> {question}
+    <div style="background-color: #f8f9fa; border: 2px solid #1f77b4; border-radius: 10px; padding: 15px; margin: 20px 0;">
+        <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: #2c3e50;">
+        📋 Business Question:
+        </h3>
+        <p style="font-size: 1.1rem; line-height: 1.4; font-weight: 500; color: #34495e;">
+        {question}
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Ground truth in expandable section to save space
-    with st.expander("🎯 View Ground Truth Answer & Context", expanded=False):
-        ground_truth = get_ground_truth_for_question(question, industry)
-        st.markdown(f"""
-        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 6px; padding: 15px; font-size: 0.9rem; line-height: 1.4;">
-        {ground_truth}
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("---")
     
-    # Main content in side-by-side layout
-    main_col1, main_col2 = st.columns([3, 2], gap="medium")
+    # Display ground truth information to aid evaluation
+    st.markdown("""
+    <h3 style="font-size: 1.6rem; margin-bottom: 1rem; color: #27ae60;">
+    🎯 Ground Truth Answer & Context
+    </h3>
+    """, unsafe_allow_html=True)
+    ground_truth = get_ground_truth_for_question(question, industry)
+    st.markdown(f"""
+    <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 8px; padding: 20px; font-size: 1.5rem; line-height: 1.7;">
+    {ground_truth}
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("---")
     
-    with main_col1:
-        st.markdown(f"""
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #e67e22;">
-        🤖 AI Model Responses
-        </h3>
-        """, unsafe_allow_html=True)
+    # Display responses in a 2x2 grid for compactness
+    with st.form(f"ratings_form_{question_number}_{industry}"):
+        rating_results = {}
         
-        # Display all responses in a compact vertical layout
-        response_containers = []
-        for response_idx, response in enumerate(responses):
-            original_anonymous_id = response.get("anonymous_id", f"Response {response_idx + 1}")
-            if original_anonymous_id in ["A", "B", "C", "D"]:
-                anonymous_id = f"RESPONSE {original_anonymous_id}"
-            else:
-                anonymous_id = original_anonymous_id
-            response_text = response.get("response", "No response available")
-            
-            # Compact response container
-            st.markdown(f"""
-            <div style="border: 1px solid #dee2e6; border-radius: 6px; margin-bottom: 15px; background-color: #fdfdfd;">
-                <div style="background-color: #f8f9fa; padding: 8px 12px; border-bottom: 1px solid #dee2e6; border-radius: 6px 6px 0 0;">
-                    <strong style="color: #e67e22; font-size: 1.0rem;">{anonymous_id}</strong>
-                </div>
-                <div style="padding: 12px; font-size: 0.85rem; line-height: 1.4; max-height: 200px; overflow-y: auto;">
-                    {response_text}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    with main_col2:
-        st.markdown(f"""
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #2c3e50;">
-        📊 Rate Each Response
-        </h3>
-        """, unsafe_allow_html=True)
-        
-        # Compact rating form
-        with st.form(f"ratings_form_{question_number}_{industry}"):
-            st.markdown("""
-            <div style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">
-            Rate each response on a scale of 1-5 (1=Poor, 5=Excellent)
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Rating grid for each response
-            for response_idx, response in enumerate(responses):
-                original_anonymous_id = response.get("anonymous_id", f"Response {response_idx + 1}")
-                if original_anonymous_id in ["A", "B", "C", "D"]:
-                    anonymous_id = f"RESPONSE {original_anonymous_id}"
-                else:
-                    anonymous_id = original_anonymous_id
-                
-                # Compact rating section
-                st.markdown(f"""
-                <div style="background-color: #f8f9fa; border-radius: 6px; padding: 10px; margin-bottom: 12px;">
-                    <div style="font-size: 0.9rem; font-weight: bold; color: #e67e22; margin-bottom: 8px;">
-                    {anonymous_id}
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                # 2x2 compact rating grid
-                rating_col1, rating_col2 = st.columns(2)
-                with rating_col1:
-                    st.markdown("**Quality**", help="Overall quality (1-5)")
-                    quality_rating = st.selectbox(
-                        "Quality",
-                        options=[1, 2, 3, 4, 5],
-                        key=f"quality_{anonymous_id}",
-                        label_visibility="collapsed"
-                    )
-                    st.markdown("**Accuracy**", help="Factual accuracy (1-5)")
-                    accuracy_rating = st.selectbox(
-                        "Accuracy",
-                        options=[1, 2, 3, 4, 5],
-                        key=f"accuracy_{anonymous_id}",
-                        label_visibility="collapsed"
-                    )
-                with rating_col2:
-                    st.markdown("**Relevance**", help="Relevance to question (1-5)")
-                    relevance_rating = st.selectbox(
-                        "Relevance",
-                        options=[1, 2, 3, 4, 5],
-                        key=f"relevance_{anonymous_id}",
-                        label_visibility="collapsed"
-                    )
-                    st.markdown("**Uniformity**", help="Consistency & organization (1-5)")
-                    uniformity_rating = st.selectbox(
-                        "Uniformity",
-                        options=[1, 2, 3, 4, 5],
-                        key=f"uniformity_{anonymous_id}",
-                        label_visibility="collapsed"
-                    )
-                
-                # Store ratings in session state
-                rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
-                st.session_state[f"ratings_{rating_key}"] = {
-                    "quality": quality_rating,
-                    "relevance": relevance_rating,
-                    "accuracy": accuracy_rating,
-                    "uniformity": uniformity_rating,
-                    "response_id": response.get("llm_model", "unknown")
-                }
-                
-                st.markdown("</div>", unsafe_allow_html=True)
-            
-            # Submit button
-            submitted = st.form_submit_button("📤 Submit & Continue", type="primary", use_container_width=True)
-            if submitted:
-                st.session_state["form_submitted"] = True
+        # Create 2x2 grid layout
+        for row in range(2):
+            cols = st.columns(2, gap="large")
+            for col_idx in range(2):
+                response_idx = row * 2 + col_idx
+                if response_idx < len(responses):
+                    response = responses[response_idx]
+                    # Convert anonymous_id to include "RESPONSE" prefix
+                    original_anonymous_id = response.get("anonymous_id", f"Response {response_idx + 1}")
+                    if original_anonymous_id in ["A", "B", "C", "D"]:
+                        anonymous_id = f"RESPONSE {original_anonymous_id}"
+                    else:
+                        anonymous_id = original_anonymous_id
+                    response_text = response.get("response", "No response available")
+                    
+                    with cols[col_idx]:
+                        # Response header
+                        st.markdown(f"""
+                        <h3 style="font-size: 1.3rem; margin-bottom: 0.8rem; color: #e67e22; text-align: center;">
+                        🤖 {anonymous_id}
+                        </h3>
+                        """, unsafe_allow_html=True)
+                        
+                        # Response content in a compact container
+                        with st.container():
+                            st.markdown(f"""
+                            <div style="font-size: 1.0rem; line-height: 1.4; padding: 12px; 
+                                        background-color: #f8f9fa; border-radius: 8px; 
+                                        border: 1px solid #dee2e6; max-height: 300px; overflow-y: auto;">
+                            {response_text}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        # Rating section in compact format
+                        st.markdown("""
+                        <div style="font-size: 1.0rem; margin: 10px 0 5px 0; font-weight: bold; color: #2c3e50;">
+                        📊 Rate This Response:
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Compact 2x2 rating grid
+                        rating_cols = st.columns(2)
+                        with rating_cols[0]:
+                            st.markdown("**Quality**", help="Overall quality")
+                            quality_rating = st.selectbox(
+                                "Quality",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"quality_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                            st.markdown("**Accuracy**", help="Factual accuracy")
+                            accuracy_rating = st.selectbox(
+                                "Accuracy",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"accuracy_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                        with rating_cols[1]:
+                            st.markdown("**Relevance**", help="Relevance to question")
+                            relevance_rating = st.selectbox(
+                                "Relevance",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"relevance_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                            st.markdown("**Uniformity**", help="Consistency & organization")
+                            uniformity_rating = st.selectbox(
+                                "Uniformity",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"uniformity_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                        
+                        # Store ratings in session state
+                        rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
+                        st.session_state[f"ratings_{rating_key}"] = {
+                            "quality": quality_rating,
+                            "relevance": relevance_rating,
+                            "accuracy": accuracy_rating,
+                            "uniformity": uniformity_rating,
+                            "response_id": response.get("llm_model", "unknown")
+                        }
+                        
+                        # Visual separator
+                        st.markdown("---")
+        submitted = st.form_submit_button("📤 Submit & Continue", type="primary", use_container_width=True)
+        if submitted:
+            st.session_state["form_submitted"] = True
 
 def get_ground_truth_for_question(question: str, industry: str) -> str:
     """
@@ -888,41 +878,57 @@ def mark_evaluation_completed(email: str):
         st.error(f"Error marking evaluation as completed: {str(e)}")
 
 def display_evaluation_progress(session: Dict):
-    """Display progress through the evaluation in compact format."""
-    # Compact progress display
-    col1, col2, col3 = st.columns([2, 2, 3])
+    """Display progress through the evaluation."""
+    st.markdown("""
+    <h3 style="font-size: 1.8rem; margin-bottom: 1.5rem; color: #2c3e50;">
+    📊 Evaluation Progress
+    </h3>
+    """, unsafe_allow_html=True)
+    
+    # Progress bars
+    col1, col2 = st.columns(2)
     
     with col1:
         retail_completed = len([q for q in session["completed_questions"] if q.startswith("retail:")])
         retail_total = len(session["selected_questions"].get("retail", []))
         retail_progress = retail_completed / retail_total if retail_total > 0 else 0
         st.progress(retail_progress)
-        st.markdown(f"**🛒 Retail**: {retail_completed}/{retail_total}")
+        st.markdown(f"""
+        <div style="font-size: 1.3rem; margin-top: 0.5rem;">
+        <strong>🛒 Retail Industry</strong>: {retail_completed}/{retail_total} questions completed
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
         finance_completed = len([q for q in session["completed_questions"] if q.startswith("finance:")])
         finance_total = len(session["selected_questions"].get("finance", []))
         finance_progress = finance_completed / finance_total if finance_total > 0 else 0
         st.progress(finance_progress)
-        st.markdown(f"**💰 Finance**: {finance_completed}/{finance_total}")
+        st.markdown(f"""
+        <div style="font-size: 1.3rem; margin-top: 0.5rem;">
+        <strong>💰 Finance Industry</strong>: {finance_completed}/{finance_total} questions completed
+        </div>
+        """, unsafe_allow_html=True)
     
-    with col3:
-        current_industry = session["current_industry"]
-        current_question_index = session["current_question_index"]
-        current_total = len(session["selected_questions"].get(current_industry, []))
-        
-        if current_industry == "retail":
-            st.markdown(f"""
-            <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; padding: 8px; font-size: 0.9rem;">
-            🛒 <strong>Current: Retail Q{current_question_index + 1}/{current_total}</strong>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 4px; padding: 8px; font-size: 0.9rem;">
-            💰 <strong>Current: Finance Q{current_question_index + 1}/{current_total}</strong>
-            </div>
-            """, unsafe_allow_html=True)
+    # Current status
+    current_industry = session["current_industry"]
+    current_question_index = session["current_question_index"]
+    current_total = len(session["selected_questions"].get(current_industry, []))
+    
+    if current_industry == "retail":
+        st.markdown(f"""
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 1.4rem;">
+        🛒 <strong>Currently evaluating: Retail Industry</strong> (Question {current_question_index + 1}/{current_total})
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="background-color: #e8f5e8; border: 1px solid #27ae60; border-radius: 8px; padding: 15px; margin: 15px 0; font-size: 1.4rem;">
+        💰 <strong>Currently evaluating: Finance Industry</strong> (Question {current_question_index + 1}/{current_total})
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
 
 def show_completion_message():
     """Show completion message and collect final feedback when all evaluations are done."""
@@ -1278,16 +1284,26 @@ def show_evaluation_interface():
         st.error("❌ Unable to load evaluation data. Please contact the administrator.")
         return
     
-    # Compact page header
+    # Page header with larger font
     st.markdown("""
-    <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem; color: #1f77b4;">
+    <h1 style="font-size: 2.8rem; margin-bottom: 1.5rem; color: #1f77b4;">
     🔍 Blind Evaluation
     </h1>
     """, unsafe_allow_html=True)
     
     st.markdown("""
-    <div style="font-size: 0.9rem; line-height: 1.4; margin-bottom: 1rem; color: #666;">
-    Evaluate AI responses without knowing which model generated each. Complete 6 questions per industry (Retail → Finance).
+    <div style="font-size: 1.4rem; line-height: 1.7; margin-bottom: 2rem;">
+    Welcome to the blind evaluation! You will evaluate responses from different AI models 
+    without knowing which model generated each response.
+    
+    <h3 style="font-size: 1.6rem; margin: 1.5rem 0 1rem 0; color: #2c3e50;">
+    📋 Evaluation Flow:
+    </h3>
+    <ul style="font-size: 1.3rem; line-height: 1.6;">
+        <li>You will complete <strong>6 questions per industry</strong></li>
+        <li>Start with <strong>Retail</strong> industry, then move to <strong>Finance</strong></li>
+        <li>Questions are randomly selected from a pool of 10 per industry</li>
+    </ul>
     </div>
     """, unsafe_allow_html=True)
     
