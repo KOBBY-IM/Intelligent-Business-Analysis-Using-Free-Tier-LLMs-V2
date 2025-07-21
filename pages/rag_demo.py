@@ -61,12 +61,12 @@ if st.button("Generate Response", type="primary"):
             }
             dataset_path = dataset_paths[industry]
             
-            # Build or load RAG index
+            # Build or load RAG index (in-memory mode for Streamlit Cloud)
             rag_index = build_rag_index(
                 dataset_path,
                 dataset_type="csv",
                 text_column="RAG_Text",
-                persist_path=f"vector_db_{industry}"
+                persist_path=None  # In-memory only
             )
             
             # Get embedding model
