@@ -1,0 +1,20 @@
+[Unit]
+Description=Batch LLM Evaluator Scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=kobby
+Group=kobby
+WorkingDirectory=/home/kobby/Documents/MSC thesis/Intelligent-Business-Analysis-Using-Free-Tier-LLMs-V2
+Environment="PATH=/home/kobby/Documents/MSC thesis/Intelligent-Business-Analysis-Using-Free-Tier-LLMs-V2/venv/bin"
+ExecStart=/home/kobby/Documents/MSC thesis/Intelligent-Business-Analysis-Using-Free-Tier-LLMs-V2/venv/bin/python /home/kobby/Documents/MSC thesis/Intelligent-Business-Analysis-Using-Free-Tier-LLMs-V2/automation/local_scheduler.py --mode hourly --hours 2
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/home/kobby/Documents/MSC thesis/Intelligent-Business-Analysis-Using-Free-Tier-LLMs-V2/automation/batch_evaluator_service.log
+StandardError=append:/home/kobby/Documents/MSC thesis/Intelligent-Business-Analysis-Using-Free-Tier-LLMs-V2/automation/batch_evaluator_service.log
+
+[Install]
+WantedBy=multi-user.target 
