@@ -116,6 +116,26 @@ def load_technical_metrics_data():
     return pd.DataFrame()
 
 # ---- ENHANCED VISUALIZATION FUNCTIONS ----
+
+def create_additional_metric_distributions(technical_df):
+    """Return up to three Plotly histogram figures for additional numeric columns not already visualized."""
+    if technical_df.empty:
+        return None, None, None
+    # Metrics already visualized
+    exclude = {'latency_sec', 'throughput_tps', 'success', 'coverage_score'}
+    # Find additional numeric columns
+    numeric_cols = [col for col in technical_df.select_dtypes(include='number').columns if col not in exclude]
+    figs = []
+    for col in numeric_cols[:3]:
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(x=technical_df[col], name=col, marker_color='#1f77b4'))
+        fig.update_layout(title=f"Distribution of {col}", xaxis_title=col, yaxis_title="Count", height=350)
+        figs.append(fig)
+    # Pad with None if fewer than 3
+    while len(figs) < 3:
+        figs.append(None)
+    return tuple(figs)
+
 def create_performance_dashboard(technical_df):
     """Create comprehensive performance dashboard with moving averages"""
     if technical_df.empty:
