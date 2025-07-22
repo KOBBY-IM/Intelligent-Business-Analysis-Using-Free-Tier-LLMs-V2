@@ -195,82 +195,46 @@ def flatten_ratings_data(df):
     
     return result_df
 
-# ---- GCS DATA RETRIEVAL ----
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+def flatten_blind_evaluation_json(json_data):
+    rows = []
+    for eval in json_data:
+        tester_email = eval.get("tester_email", "")
+        tester_name = eval.get("tester_name", "")
+        timestamp = eval.get("evaluation_timestamp", "")
+        for qkey, qdata in eval.get("individual_question_ratings", {}).items():
+            question = qdata.get("question", "")
+            industry = qdata.get("industry", "")
+            model_mapping = qdata.get("model_mapping", {})
+            for resp_id, rating in qdata.get("ratings", {}).items():
+                row = {
+                    "tester_email": tester_email,
+                    "tester_name": tester_name,
+                    "evaluation_timestamp": timestamp,
+                    "question_key": qkey,
+                    "question": question,
+                    "industry": industry,
+                    "response_id": resp_id,
+                    "llm_model": rating.get("response_id", model_mapping.get(resp_id, "")),
+                    "relevance": rating.get("relevance", ""),
+                    "clarity": rating.get("clarity", ""),
+                    "actionability": rating.get("actionability", "")
+                }
+                rows.append(row)
+    return pd.DataFrame(rows)
+
+# Replace load_blind_evaluation_data to use JSON flattening if CSV is empty or missing
+@st.cache_data(ttl=300)
 def load_blind_evaluation_data():
-    """Load blind evaluation data from GCS with fallback to local files"""
-    try:
-        # Robust GCS credential detection (matches technical_metrics_analysis.py)
-        gcs_available = False
-        if "gcp_service_account" in st.secrets:
-            gcs_available = True
-        elif "gcs" in st.secrets and "service_account" in st.secrets["gcs"]:
-            gcs_available = True
-        if gcs_available:
-            ds = DataStore("gcs")
-            if ds.storage_type == "gcs":
-                human_evals = ds.load_evaluation_data()
-                if human_evals:
-                    human_df = pd.DataFrame(human_evals)
-                    for col in ['timestamp', 'evaluation_timestamp']:
-                        if col in human_df.columns:
-                            human_df[col] = pd.to_datetime(human_df[col])
-                    human_df = flatten_ratings_data(human_df)
-                    st.success(f"📊 Loaded {len(human_df)} blind evaluation records from GCS")
-                    return human_df
-                else:
-                    st.warning("⚠️ No blind evaluation data found in GCS yet")
-            else:
-                st.warning("⚠️ DataStore could not initialize with GCS - using local fallback")
-        else:
-            st.info("ℹ️ GCS credentials not found - using local fallback")
-    except Exception as e:
-        st.warning(f"⚠️ Could not load from GCS: {str(e)} - using local fallback")
-    
-    # Fallback to local DataStore
-    try:
-        ds = DataStore("local")
-        human_evals = ds.load_evaluation_data()
-        if human_evals:
-            human_df = pd.DataFrame(human_evals)
-            
-            # Convert timestamp columns if present
-            for col in ['timestamp', 'evaluation_timestamp']:
-                if col in human_df.columns:
-                    human_df[col] = pd.to_datetime(human_df[col])
-            
-            # Flatten nested ratings structure for analysis
-            human_df = flatten_ratings_data(human_df)
-            
-            st.info(f"📊 Using local blind evaluation data ({len(human_df)} records)")
-            return human_df
-    except Exception as e:
-        st.warning(f"⚠️ Could not load from local DataStore: {str(e)}")
-    
-    # Final fallback to sample data
-    try:
-        sample_path = os.path.join("data", "sample_evaluations.json")
-        if os.path.exists(sample_path):
-            with open(sample_path, 'r', encoding='utf-8') as f:
-                sample_data = json.load(f)
-            human_df = pd.DataFrame(sample_data)
-            
-            # Convert timestamp columns if present
-            for col in ['timestamp', 'evaluation_timestamp']:
-                if col in human_df.columns:
-                    human_df[col] = pd.to_datetime(human_df[col])
-            
-            # Flatten nested ratings structure for analysis
-            human_df = flatten_ratings_data(human_df)
-            
-            st.info(f"📈 Using sample blind evaluation data ({len(human_df)} records)")
-            return human_df
-    except Exception as e:
-        st.error(f"❌ Failed to load sample data: {e}")
-    
-    # Return empty DataFrame if all else fails
-    st.warning("⚠️ No blind evaluation data available")
-    return pd.DataFrame()
+    csv_path = os.path.join("data", "evaluations.csv")
+    json_path = os.path.join("data", "evaluations.json")
+    if os.path.exists(csv_path) and os.path.getsize(csv_path) > 0:
+        return pd.read_csv(csv_path)
+    elif os.path.exists(json_path):
+        with open(json_path, "r", encoding="utf-8") as f:
+            json_data = json.load(f)
+        return flatten_blind_evaluation_json(json_data)
+    else:
+        return pd.DataFrame()
 
 # ---- STATISTICAL ANALYSIS FUNCTIONS ----
 def calculate_confidence_intervals(data, confidence=0.95):
