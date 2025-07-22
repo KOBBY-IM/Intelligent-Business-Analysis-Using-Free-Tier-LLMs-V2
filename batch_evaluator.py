@@ -5,6 +5,7 @@ import csv
 from datetime import datetime, timezone
 from typing import List, Dict, Any
 import pandas as pd # Added for appending to CSV
+from concurrent.futures import ThreadPoolExecutor
 
 # --- BEGIN: Streamlit secrets GCS credential support ---
 def setup_gcs_credentials():
@@ -142,9 +143,9 @@ def load_questions(path: str) -> Dict[str, List[str]]:
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def count_tokens(text: str) -> int:
-    # Approximate: use whitespace word count as token proxy
-    return len(text.split())
+def count_tokens(text):
+    # Simple whitespace tokenizer fallback
+    return len(text.split()) if text else 0
 
 def upload_to_gcs(local_path: str, bucket_name: str, blob_name: str):
     client = storage.Client()
@@ -214,7 +215,7 @@ def compute_coverage(answer: str, context_chunks: list) -> float:
     overlap = answer_words & context_words
     return len(overlap) / len(answer_words)
 
-def build_rag_index_with_collection(dataset_path: str, collection_name: str, dataset_type: str = "csv", text_column: str = None, chunk_size: int = 500, overlap: int = 50, persist_path: str = None) -> VectorDB:
+def build_rag_index_with_collection(dataset_path: str, collection_name: str, dataset_type: str = "csv", text_column: str = None, chunk_size: int = 500, overlap: int = 50) -> VectorDB:
     # Load data
     if dataset_type == "csv":
         docs = load_csv_dataset(dataset_path, text_column=text_column)
@@ -230,13 +231,12 @@ def build_rag_index_with_collection(dataset_path: str, collection_name: str, dat
     embeddings = embed_texts(chunks, model)
     # Prepare metadata
     metadatas = [{"text": chunk, "chunk_id": i} for i, chunk in enumerate(chunks)]
-    # Build vector DB with unique collection name
-    vector_db = VectorDB(collection_name=collection_name, persist_path=persist_path)
+    # Build vector DB with unique collection name (in-memory only)
+    vector_db = VectorDB(collection_name=collection_name)
     vector_db.add_documents(embeddings, metadatas)
     return vector_db
 
-# ---- MAIN BATCH EVALUATION ----
-def main():
+def run_single_batch(batch_id=None):
     # Load questions
     questions = load_questions(QUESTIONS_PATH)
     # Build RAG index and embedding model for each industry
@@ -260,28 +260,24 @@ def main():
     for industry, q in selected:
         rag_index = rag_indices[industry]
         embedding_model = embedding_models[industry]
-        # Retrieve context
-        try:
-            context_results = retrieve_context(q, rag_index, embedding_model, top_k=3)
-            context_chunks = [r["text"] for r in context_results]
-        except Exception as e:
-            print(f"[ERROR] Context retrieval failed: {e}")
-            context_chunks = []
+        context_chunks = retrieve_context(q, rag_index, embedding_model, top_k=5)
         prompt = build_prompt(q, context_chunks)
-        prompt_tokens = count_tokens(prompt)
-        for llm in LLMS:
+        # LLM calls in parallel
+        def call_llm(llm, prompt, context_chunks):
             client = get_llm_client(llm["provider"], llm["model"])
             retry_count = 0
             max_retries = 3
             latency = None
             response = ""
             response_tokens = 0
+            prompt_tokens = count_tokens(prompt)
             total_tokens = prompt_tokens
             throughput = 0
             success = False
             error = None
             rate_limit_hit = False
             error_type = None
+            http_status = None
             while retry_count < max_retries:
                 start = time.time()
                 try:
@@ -289,7 +285,7 @@ def main():
                     latency = time.time() - start
                     response_tokens = count_tokens(response)
                     total_tokens = prompt_tokens + response_tokens
-                    throughput = response_tokens / latency if latency > 0 else 0
+                    throughput = response_tokens / latency if latency and latency > 0 else 0
                     success = True
                     error = None
                     rate_limit_hit = False
@@ -318,9 +314,20 @@ def main():
                         error_type = "other"
                     retry_count += 1
                     if retry_count < max_retries:
-                        time.sleep(2)  # brief pause before retry
-            coverage_score = compute_coverage(response, context_chunks)
-            metric = {
+                        time.sleep(2)
+            # Response quality metrics
+            response_length = len(response) if response else 0
+            response_contains_context = False
+            for chunk in context_chunks:
+                chunk_text = chunk if isinstance(chunk, str) else chunk.get('text', '')
+                if chunk_text and chunk_text in response:
+                    response_contains_context = True
+                    break
+            # Compute coverage score (fraction of answer words in context)
+            coverage_score = compute_coverage(response, [chunk if isinstance(chunk, str) else chunk.get('text', '') for chunk in context_chunks])
+            # Try to get HTTP status if available (requires client to expose it)
+            # For now, set to None
+            return {
                 "timestamp": batch_timestamp,
                 "industry": industry,
                 "question": q,
@@ -333,20 +340,22 @@ def main():
                 "throughput_tps": throughput,
                 "success": success,
                 "error": error,
-                "coverage_score": coverage_score,
+                "batch_id": batch_id,
                 "retry_count": retry_count,
                 "rate_limit_hit": rate_limit_hit,
                 "error_type": error_type,
+                "response_length": response_length,
+                "response_contains_context": response_contains_context,
+                "coverage_score": coverage_score,
+                "http_status": http_status
             }
-            all_metrics.append(metric)
-            latency_str = f"{latency:.2f}s" if latency is not None else "N/A"
-            coverage_str = f"{coverage_score:.2f}" if coverage_score is not None else "N/A"
-            print(f"[{industry}] {llm['provider']}:{llm['model']} | Latency: {latency_str} | Success: {success} | Coverage: {coverage_str} | Retries: {retry_count} | RateLimit: {rate_limit_hit} | ErrorType: {error_type}")
+        with ThreadPoolExecutor(max_workers=len(LLMS)) as executor:
+            results = list(executor.map(lambda llm: call_llm(llm, prompt, context_chunks), LLMS))
+        all_metrics.extend(results)
     # Save results
     save_json(all_metrics, OUTPUT_JSON)
     save_csv(all_metrics, OUTPUT_CSV)
     print(f"[INFO] Saved batch evaluation data locally: {OUTPUT_JSON}, {OUTPUT_CSV}")
-    # Always attempt to upload to GCS after local save
     try:
         upload_to_gcs(OUTPUT_JSON, GCS_BUCKET, GCS_JSON_BLOB)
         upload_to_gcs(OUTPUT_CSV, GCS_BUCKET, GCS_CSV_BLOB)
@@ -354,6 +363,13 @@ def main():
     except Exception as e:
         print(f"[WARN] Could not upload to GCS: {e}")
     print(f"Batch evaluation complete. {len(all_metrics)} records saved.")
+
+def main():
+    # Run 2 batches in parallel
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(run_single_batch, batch_id=i+1) for i in range(2)]
+        for f in futures:
+            f.result()
 
 if __name__ == "__main__":
     main() 
