@@ -12,6 +12,8 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timezone
 import os
 from streamlit_sortables import sort_items
+import smtplib
+from email.mime.text import MIMEText
 
 # Page configuration
 st.set_page_config(
@@ -813,6 +815,8 @@ def save_evaluation_data(evaluation_data: Dict):
         
         if success:
             st.success("✅ Evaluation submitted successfully to cloud storage!")
+            # Send admin notification (non-blocking)
+            send_admin_notification(evaluation_data.get("tester_email"), evaluation_data.get("tester_name"))
         else:
             st.error("❌ Failed to save evaluation to cloud storage")
             return
@@ -1462,6 +1466,29 @@ def show_evaluation_interface():
             st.rerun()
     else:
         st.error("❌ No responses available for the selected question.")
+
+def send_admin_notification(tester_email, tester_name):
+    # Load email config from Streamlit secrets
+    ADMIN_EMAIL = st.secrets["ADMIN_EMAIL"]
+    SMTP_SERVER = st.secrets["SMTP_SERVER"]
+    SMTP_PORT = int(st.secrets["SMTP_PORT"])
+    SMTP_USER = st.secrets["SMTP_USER"]
+    SMTP_PASS = st.secrets["SMTP_PASS"]
+
+    subject = "New Blind Evaluation Submission"
+    body = f"A new blind evaluation has been submitted by {tester_name} ({tester_email})."
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = SMTP_USER
+    msg["To"] = ADMIN_EMAIL
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(SMTP_USER, ADMIN_EMAIL, msg.as_string())
+    except Exception as e:
+        print(f"Email notification failed: {e}")
 
 # Main execution
 if __name__ == "__main__":
