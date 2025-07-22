@@ -210,6 +210,7 @@ def flatten_blind_evaluation_json(json_data):
                     "question_key": qkey,
                     "question": question,
                     "industry": industry,
+                    "current_industry": industry,  # Ensure this column exists for filtering
                     "response_id": resp_id,
                     "llm_model": rating.get("response_id", model_mapping.get(resp_id, "")),
                     "relevance": rating.get("relevance", ""),
