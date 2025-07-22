@@ -225,15 +225,12 @@ def flatten_blind_evaluation_json(json_data):
 # Replace load_blind_evaluation_data to use JSON flattening if CSV is empty or missing
 @st.cache_data(ttl=300)
 def load_blind_evaluation_data():
-    csv_path = os.path.join("data", "evaluations.csv")
-    json_path = os.path.join("data", "evaluations.json")
-    if os.path.exists(csv_path) and os.path.getsize(csv_path) > 0:
-        return pd.read_csv(csv_path)
-    elif os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-8") as f:
-            json_data = json.load(f)
-        return flatten_blind_evaluation_json(json_data)
+    ds = DataStore("gcs")
+    human_evals = ds.load_evaluation_data()
+    if human_evals:
+        return flatten_blind_evaluation_json(human_evals)
     else:
+        st.warning("⚠️ No blind evaluation data found in GCS yet")
         return pd.DataFrame()
 
 # ---- STATISTICAL ANALYSIS FUNCTIONS ----
