@@ -122,10 +122,9 @@ def flatten_ratings_data(df):
                                     if isinstance(rating_data, dict) and len(rating_data) > 0:
                                         new_row = question_base.copy()
                                         new_row['response_id'] = response_id
-                                        new_row['quality'] = rating_data.get('quality', None)
-                                        new_row['relevance'] = rating_data.get('relevance', None) 
-                                        new_row['accuracy'] = rating_data.get('accuracy', None)
-                                        new_row['uniformity'] = rating_data.get('uniformity', None)
+                                        new_row['relevance'] = rating_data.get('relevance', None)
+                                        new_row['clarity'] = rating_data.get('clarity', None)
+                                        new_row['actionability'] = rating_data.get('actionability', None)
                                         
                                         # Use actual model name from mapping if available
                                         if model_mapping and response_id in model_mapping:
@@ -151,10 +150,9 @@ def flatten_ratings_data(df):
                     if isinstance(rating_data, dict) and len(rating_data) > 0:
                         new_row = base_data.copy()
                         new_row['response_id'] = response_id
-                        new_row['quality'] = rating_data.get('quality', None)
-                        new_row['relevance'] = rating_data.get('relevance', None) 
-                        new_row['accuracy'] = rating_data.get('accuracy', None)
-                        new_row['uniformity'] = rating_data.get('uniformity', None)
+                        new_row['relevance'] = rating_data.get('relevance', None)
+                        new_row['clarity'] = rating_data.get('clarity', None)
+                        new_row['actionability'] = rating_data.get('actionability', None)
                         # Use response_id as model identifier since this is blind evaluation
                         new_row['llm_model'] = get_actual_model_name(response_id)  # Use fallback mapping
                         flattened_rows.append(new_row)
@@ -167,10 +165,9 @@ def flatten_ratings_data(df):
                 empty_ratings_count += 1
                 # Still create a record for tracking purposes
                 base_data['response_id'] = 'no_ratings'
-                base_data['quality'] = None
                 base_data['relevance'] = None
-                base_data['accuracy'] = None
-                base_data['uniformity'] = None
+                base_data['clarity'] = None
+                base_data['actionability'] = None
                 base_data['llm_model'] = 'No Ratings'
                 flattened_rows.append(base_data)
                 
@@ -434,18 +431,19 @@ else:
     with col3:
         st.metric("Industries", filtered_human['current_industry'].nunique() if 'current_industry' in filtered_human.columns else 0)
     with col4:
-        avg_quality = filtered_human['quality'].mean() if 'quality' in filtered_human.columns else 0
-        st.metric("Avg Quality Rating", f"{avg_quality:.2f}")
+        avg_relevance = filtered_human['relevance'].mean() if 'relevance' in filtered_human.columns else 0
+        st.metric("Avg Relevance Rating", f"{avg_relevance:.2f}")
 
     # ---- STATISTICAL SUMMARY ----
     st.header("📈 Statistical Summary")
     
     if not filtered_human.empty:
-        rating_cols = ['quality', 'relevance', 'accuracy', 'uniformity']
+        # Define the new rating columns for analysis
+        rating_cols = ["relevance", "clarity", "actionability"]
         available_ratings = [col for col in rating_cols if col in filtered_human.columns]
         
         # Check if we have any actual rating data
-        complete_ratings = filtered_human[filtered_human['quality'].notna()] if 'quality' in filtered_human.columns else pd.DataFrame()
+        complete_ratings = filtered_human[filtered_human['relevance'].notna()] if 'relevance' in filtered_human.columns else pd.DataFrame()
         
         if available_ratings and not complete_ratings.empty:
             # Calculate statistics
@@ -501,7 +499,7 @@ else:
     
     if not filtered_human.empty:
         # Check if we have complete rating data for visualizations
-        complete_ratings = filtered_human[filtered_human['quality'].notna()] if 'quality' in filtered_human.columns else pd.DataFrame()
+        complete_ratings = filtered_human[filtered_human['relevance'].notna()] if 'relevance' in filtered_human.columns else pd.DataFrame()
         
         if not complete_ratings.empty and 'llm_model' in complete_ratings.columns:
             # 1. Radar Chart
