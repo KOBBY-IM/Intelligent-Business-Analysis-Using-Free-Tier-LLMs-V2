@@ -425,13 +425,39 @@ class DataStore:
             return False
     
     def _save_evaluations_csv_to_local(self, evaluations: List[Dict[str, Any]]) -> bool:
-        """Save evaluations as CSV to local file system."""
+        """Save evaluations as CSV to local file system, flattening nested question/response ratings."""
         try:
-            # Convert to DataFrame and then to CSV
-            df = self._evaluations_to_dataframe(evaluations)
-            file_path = os.path.join('data', 'evaluations.csv')
-            df.to_csv(file_path, index=False)
-            
+            rows = []
+            for eval in evaluations:
+                tester_email = eval.get("tester_email", "")
+                tester_name = eval.get("tester_name", "")
+                timestamp = eval.get("evaluation_timestamp", "")
+                for qkey, qdata in eval.get("individual_question_ratings", {}).items():
+                    question = qdata.get("question", "")
+                    industry = qdata.get("industry", "")
+                    model_mapping = qdata.get("model_mapping", {})
+                    for resp_id, rating in qdata.get("ratings", {}).items():
+                        row = {
+                            "tester_email": tester_email,
+                            "tester_name": tester_name,
+                            "evaluation_timestamp": timestamp,
+                            "question_key": qkey,
+                            "question": question,
+                            "industry": industry,
+                            "response_id": resp_id,
+                            "llm_model": rating.get("response_id", model_mapping.get(resp_id, "")),
+                            "relevance": rating.get("relevance", ""),
+                            "clarity": rating.get("clarity", ""),
+                            "actionability": rating.get("actionability", "")
+                        }
+                        rows.append(row)
+            # Write to CSV
+            if rows:
+                file_path = os.path.join('data', 'evaluations.csv')
+                with open(file_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+                    writer.writeheader()
+                    writer.writerows(rows)
             return True
         except Exception as e:
             st.error(f"Local CSV save error: {str(e)}")
