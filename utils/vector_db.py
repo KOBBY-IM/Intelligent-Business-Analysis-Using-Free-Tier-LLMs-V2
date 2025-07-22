@@ -14,22 +14,15 @@ class VectorDB:
     """
     def __init__(self, collection_name: str = "rag_collection", persist_path: str = None):
         """
-        Initialize the vector database (in-memory or file-based).
+        Initialize the vector database (in-memory only; persistence is disabled to avoid tenant errors).
         Args:
             collection_name: Name of the collection to use (default: 'rag_collection')
-            persist_path: Optional path for persistence
+            persist_path: (Ignored) Optional path for persistence
         """
-        self.persist_path = persist_path
+        self.persist_path = None  # Force in-memory
         self.collection_name = collection_name
-        if persist_path:
-            self.client = chromadb.Client(Settings(
-                persist_directory=persist_path,
-                is_persistent=True
-            ))
-        else:
-            self.client = chromadb.Client(Settings(
-                is_persistent=False
-            ))
+        # Always use in-memory mode to avoid tenant/persistence errors
+        self.client = chromadb.Client(Settings(is_persistent=False))
         # Use get_or_create_collection for safety
         self.collection = self.client.get_or_create_collection(self.collection_name)
 

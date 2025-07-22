@@ -13,13 +13,16 @@ import sys
 import time
 import subprocess
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dtime
 from typing import Optional
 import signal
 import json
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+ACTIVE_START = dtime(9, 0)   # 9:00 AM
+ACTIVE_END = dtime(17, 0)    # 5:00 PM
 
 class RealWorldSimulator:
     """Real-world usage pattern simulator for batch evaluator"""
@@ -50,6 +53,8 @@ class RealWorldSimulator:
         self.cycle_count = 0
         self.current_phase = "intensive"  # "intensive" or "rest"
         self.phase_start_time = None
+        self.simulation_start_time = datetime.now()
+        self.total_days = 4  # Number of days to run the simulation
         self.setup_logging()
         
         # Create automation directory if it doesn't exist
@@ -162,27 +167,39 @@ class RealWorldSimulator:
         
         try:
             while self.running:
-                # Check if we should switch phases
-                if self.should_switch_phase():
-                    self.switch_phase()
-                
-                # Run evaluation if in intensive phase
-                if self.current_phase == "intensive":
+                now = datetime.now()
+                now_time = now.time()
+                if ACTIVE_START <= now_time < ACTIVE_END:
+                    # Run batch evaluation
+                    self.logger.info("⚡ Within active hours (9am-5pm), running batch evaluation...")
                     self.run_batch_evaluation()
-                    
-                    # Wait 1 minute before next evaluation
-                    self.logger.info(f"⏳ Waiting 60 seconds until next evaluation...")
-                    for i in range(60):
+                    self.logger.info("⏳ Waiting 30 seconds until next evaluation...")
+                    for i in range(30):
                         if not self.running:
                             break
                         time.sleep(1)
                 else:
-                    # In rest phase, just wait and check periodically
-                    time_until_next_phase = self.rest_duration - (datetime.now() - self.phase_start_time)
-                    if time_until_next_phase.total_seconds() > 0:
-                        wait_seconds = min(30, time_until_next_phase.total_seconds())  # Check every 30 seconds max
-                        self.logger.info(f"😴 Rest phase - {time_until_next_phase} remaining...")
-                        time.sleep(wait_seconds)
+                    # Calculate next ACTIVE_START datetime
+                    today_active_start = now.replace(hour=ACTIVE_START.hour, minute=ACTIVE_START.minute, second=0, microsecond=0)
+                    if now_time < ACTIVE_START:
+                        next_active = today_active_start
+                    else:
+                        # After 5pm, next active is tomorrow at 9am
+                        next_active = (now + timedelta(days=1)).replace(hour=ACTIVE_START.hour, minute=ACTIVE_START.minute, second=0, microsecond=0)
+                    # Subtract 5 minutes for pre-check
+                    pre_check_time = next_active - timedelta(minutes=5)
+                    if now < pre_check_time:
+                        sleep_seconds = (pre_check_time - now).total_seconds()
+                        self.logger.info(f"😴 Outside active hours, sleeping for {int(sleep_seconds // 60)} minutes until 5 minutes before next active window...")
+                        time.sleep(max(1, sleep_seconds))
+                    else:
+                        # Within 5 minutes of active window, check every 1 minute
+                        self.logger.info("⏳ Within 5 minutes of active window, checking every 1 minute...")
+                        time.sleep(60)
+                # Stop after total_days
+                if (datetime.now() - self.simulation_start_time).days >= self.total_days:
+                    self.logger.info("⏰ 4-day simulation period completed")
+                    break
                 
         except KeyboardInterrupt:
             self.logger.info("⚠️ Received keyboard interrupt")

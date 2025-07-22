@@ -365,11 +365,7 @@ def run_single_batch(batch_id=None):
     print(f"Batch evaluation complete. {len(all_metrics)} records saved.")
 
 def main():
-    # Run 2 batches in parallel
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(run_single_batch, batch_id=i+1) for i in range(2)]
-        for f in futures:
-            f.result()
+    run_single_batch(batch_id=1)
 
 if __name__ == "__main__":
     main() 

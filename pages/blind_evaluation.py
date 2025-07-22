@@ -11,6 +11,7 @@ import random
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timezone
 import os
+from streamlit_sortables import sort_items
 
 # Page configuration
 st.set_page_config(
@@ -166,13 +167,6 @@ def display_evaluation_instructions():
     
     ### How to Evaluate Each Response:
     
-    **Quality (1-5 scale):**
-    - 1 = Poor: Unclear, confusing, or unhelpful
-    - 2 = Below Average: Some useful information but major issues
-    - 3 = Average: Adequate but not exceptional
-    - 4 = Good: Clear, helpful, and well-structured
-    - 5 = Excellent: Outstanding clarity, insight, and usefulness
-    
     **Relevance (1-5 scale):**
     - 1 = Not Relevant: Doesn't address the question
     - 2 = Slightly Relevant: Tangentially related
@@ -180,23 +174,23 @@ def display_evaluation_instructions():
     - 4 = Relevant: Directly addresses the question
     - 5 = Highly Relevant: Perfectly addresses the question with precision
     
-    **Accuracy (1-5 scale):**
-    - 1 = Inaccurate: Contains errors or contradicts ground truth data
-    - 2 = Mostly Inaccurate: Several errors when compared to ground truth
-    - 3 = Somewhat Accurate: Mix of correct and incorrect information vs ground truth
-    - 4 = Accurate: Generally aligns with ground truth with minor issues
-    - 5 = Highly Accurate: Factually correct and matches ground truth data
+    **Clarity (1-5 scale):**
+    - 1 = Unclear: Confusing or poorly written
+    - 2 = Somewhat Unclear: Some clarity issues
+    - 3 = Moderately Clear: Understandable but not polished
+    - 4 = Clear: Well-written and easy to follow
+    - 5 = Extremely Clear: Exceptionally clear and well-structured
     
-    **Uniformity (1-5 scale):**
-    - 1 = Inconsistent: Contradictory or poorly organized
-    - 2 = Somewhat Inconsistent: Some organization issues
-    - 3 = Moderately Consistent: Generally well-organized
-    - 4 = Consistent: Well-structured and organized
-    - 5 = Highly Consistent: Excellent structure and flow
+    **Actionability (1-5 scale):**
+    - 1 = Not Actionable: No practical recommendations
+    - 2 = Slightly Actionable: Vague or generic suggestions
+    - 3 = Somewhat Actionable: Some useful recommendations
+    - 4 = Actionable: Clear, practical recommendations
+    - 5 = Highly Actionable: Direct, specific, and practical advice
     
     ### 📝 Evaluation Process:
     
-    1. **Rate Each Response**: Provide ratings for Quality, Relevance, Accuracy, and Uniformity for each response
+    1. **Rate Each Response**: Provide ratings for Relevance, Clarity, and Actionability for each response
     2. **Submit & Continue**: Click "Submit & Continue" to save ratings and move to the next question
     3. **Complete All Questions**: Continue through all questions for both industries
     4. **Provide Final Written Feedback**: At the end, provide comprehensive written feedback on overall impressions
@@ -204,7 +198,7 @@ def display_evaluation_instructions():
     ### 📊 Final Assessment:
     
     After completing all questions, you will provide:
-    - **Overall ratings** for quality, relevance, accuracy, and usefulness
+    - **Overall ratings** for relevance, clarity, and actionability
     - **Detailed written feedback** on strengths and weaknesses
     - **Suggestions** for improving AI business analysis
     - **General observations** about the evaluation experience
@@ -316,12 +310,12 @@ def display_question_and_responses(question: str, industry: str, responses: List
         <div style="background-color: #f8f9fa; border: 1px solid #1f77b4; border-radius: 8px; padding: 15px; height: 100%;">
             <h3 style="font-size: 1.1rem; margin-bottom: 0.8rem; color: #2c3e50;">
             📋 Business Question
-            </h3>
+        </h3>
             <p style="font-size: 1.0rem; line-height: 1.4; font-weight: 500; color: #34495e;">
-            {question}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        {question}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     with ground_truth_col:
         ground_truth = get_ground_truth_for_question(question, industry)
@@ -331,10 +325,10 @@ def display_question_and_responses(question: str, industry: str, responses: List
             🎯 Ground Truth & Context
             </h3>
             <div style="font-size: 0.9rem; line-height: 1.4;">
-            {ground_truth}
+    {ground_truth}
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -385,21 +379,6 @@ def display_question_and_responses(question: str, industry: str, responses: List
                         # Compact 2x2 rating grid
                         rating_cols = st.columns(2)
                         with rating_cols[0]:
-                            st.markdown("**Quality**", help="Overall quality")
-                            quality_rating = st.selectbox(
-                                "Quality",
-                                options=[1, 2, 3, 4, 5],
-                                key=f"quality_{anonymous_id}",
-                                label_visibility="collapsed"
-                            )
-                            st.markdown("**Accuracy**", help="Factual accuracy")
-                            accuracy_rating = st.selectbox(
-                                "Accuracy",
-                                options=[1, 2, 3, 4, 5],
-                                key=f"accuracy_{anonymous_id}",
-                                label_visibility="collapsed"
-                            )
-                        with rating_cols[1]:
                             st.markdown("**Relevance**", help="Relevance to question")
                             relevance_rating = st.selectbox(
                                 "Relevance",
@@ -407,29 +386,54 @@ def display_question_and_responses(question: str, industry: str, responses: List
                                 key=f"relevance_{anonymous_id}",
                                 label_visibility="collapsed"
                             )
-                            st.markdown("**Uniformity**", help="Consistency & organization")
-                            uniformity_rating = st.selectbox(
-                                "Uniformity",
+                            st.markdown("**Clarity**", help="Clarity and understandability")
+                            clarity_rating = st.selectbox(
+                                "Clarity",
                                 options=[1, 2, 3, 4, 5],
-                                key=f"uniformity_{anonymous_id}",
+                                key=f"clarity_{anonymous_id}",
+                                label_visibility="collapsed"
+                            )
+                        with rating_cols[1]:
+                            st.markdown("**Actionability**", help="Practical recommendations")
+                            actionability_rating = st.selectbox(
+                                "Actionability",
+                                options=[1, 2, 3, 4, 5],
+                                key=f"actionability_{anonymous_id}",
                                 label_visibility="collapsed"
                             )
                         
                         # Store ratings in session state
                         rating_key = original_anonymous_id if original_anonymous_id in ["A", "B", "C", "D"] else anonymous_id.split()[-1]
                         st.session_state[f"ratings_{rating_key}"] = {
-                            "quality": quality_rating,
                             "relevance": relevance_rating,
-                            "accuracy": accuracy_rating,
-                            "uniformity": uniformity_rating,
+                            "clarity": clarity_rating,
+                            "actionability": actionability_rating,
                             "response_id": response.get("llm_model", "unknown")
                         }
                         
                         # Visual separator
                         st.markdown("---")
-        submitted = st.form_submit_button("📤 Submit & Continue", type="primary", use_container_width=True)
-        if submitted:
-            st.session_state["form_submitted"] = True
+        # Collect the anonymous IDs and short response previews for ranking
+        response_ids = []
+        response_previews = []
+        for response in responses:
+            anon_id = response.get("anonymous_id", "?")
+            text = response.get("response", "No response available")
+            preview = text[:80] + ("..." if len(text) > 80 else "")
+            response_ids.append(anon_id)
+            response_previews.append(f"{anon_id}: {preview}")
+
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("**⬇️ Drag to Rank the Responses (Best to Least):**")
+            ranked = sort_items(response_previews, direction="vertical", key=f"ranking_{question_number}_{industry}")
+            ranked_ids = [item.split(":")[0] for item in ranked]
+        # Right-aligned submit button, below the ranking
+        col1b, col2b, col3b = st.columns([2, 2, 1])
+        with col3b:
+            submitted = st.form_submit_button("📤 Submit & Continue", type="primary")
+            if submitted:
+                st.session_state["form_submitted"] = True
 
 def get_ground_truth_for_question(question: str, industry: str) -> str:
     """
@@ -868,27 +872,21 @@ def display_evaluation_progress(session: Dict):
     retail_completed = len([q for q in session["completed_questions"] if q.startswith("retail:")])
     retail_total = len(session["selected_questions"].get("retail", []))
     retail_progress = retail_completed / retail_total if retail_total > 0 else 0
-    
     st.markdown("**🛒 Retail Industry**")
     st.progress(retail_progress)
     st.markdown(f"<small>{retail_completed}/{retail_total} completed</small>", unsafe_allow_html=True)
-    
     finance_completed = len([q for q in session["completed_questions"] if q.startswith("finance:")])
     finance_total = len(session["selected_questions"].get("finance", []))
     finance_progress = finance_completed / finance_total if finance_total > 0 else 0
-    
     st.markdown("**💰 Finance Industry**")
     st.progress(finance_progress)
     st.markdown(f"<small>{finance_completed}/{finance_total} completed</small>", unsafe_allow_html=True)
-    
     # Current status - compact version for sidebar
     current_industry = session["current_industry"]
     current_question_index = session["current_question_index"]
     current_total = len(session["selected_questions"].get(current_industry, []))
-    
     st.markdown("---")
     st.markdown("**📍 Current Question**")
-    
     if current_industry == "retail":
         st.markdown(f"""
         <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; padding: 8px; font-size: 0.9rem; text-align: center;">
@@ -901,7 +899,7 @@ def display_evaluation_progress(session: Dict):
         💰 Finance<br>Q{current_question_index + 1}/{current_total}
         </div>
         """, unsafe_allow_html=True)
-
+    
 def show_final_thank_you():
     """Show final thank you message after evaluation submission."""
     st.success("✅ **Thank you! Your evaluation has been successfully submitted!**")
@@ -1062,7 +1060,7 @@ def show_completion_message():
                 mark_evaluation_completed(tester_email)
             # Mark evaluation as submitted to show completion message
             st.session_state["evaluation_submitted"] = True
-            st.rerun()
+        st.rerun()
     
 
 
@@ -1102,7 +1100,7 @@ def show_registration_form():
         """, unsafe_allow_html=True)
         
         st.markdown("""
-        <h3 style="font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1.5rem;">🎯 What You'll Do</h3>
+        <h3 style="font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1.5rem;">�� What You'll Do</h3>
         <div style="font-size: 1.4rem; line-height: 1.7;">
         1. Review business scenarios from different industries<br>
         2. Compare AI responses from multiple LLM providers<br>
@@ -1114,7 +1112,7 @@ def show_registration_form():
         st.markdown("""
         <h3 style="font-size: 1.8rem; margin-top: 2.5rem; margin-bottom: 1.5rem;">⏱️ Expected Duration</h3>
         <div style="font-size: 1.5rem; font-weight: bold; color: #1f77b4;">
-        <strong>20-30 minutes</strong> - You can pause and resume at any time.
+        <strong>20-30 minutes</strong> - Please complete the evaluation in one sitting.
         </div>
         """, unsafe_allow_html=True)
         
@@ -1162,13 +1160,6 @@ def show_registration_form():
         
         # Registration form
         with st.form("registration_form"):
-            # Returning user notice with larger font
-            st.markdown("""
-            <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 20px 0; font-size: 1.4rem;">
-            💡 <strong>Returning User?</strong> Simply enter your email to continue where you left off.
-            </div>
-            """, unsafe_allow_html=True)
-            
             # Email input with larger font
             st.markdown("""
             <div style="font-size: 1.4rem; margin-bottom: 0.5rem;">
@@ -1364,6 +1355,8 @@ def show_evaluation_interface():
     retail_total = len(selected_questions.get("retail", []))
     finance_total = len(selected_questions.get("finance", []))
     
+    evaluation_complete = False
+
     if current_industry == "retail" and len([q for q in completed_questions if q.startswith("retail:")]) >= retail_total:
         session["industry_completed"]["retail"] = True
         if finance_total > 0:
@@ -1371,17 +1364,12 @@ def show_evaluation_interface():
             session["current_question_index"] = 0
             st.rerun()
         else:
-            # No finance questions, evaluation complete
-            show_completion_message()
-            return
-    
+            evaluation_complete = True
+
     if current_industry == "finance" and len([q for q in completed_questions if q.startswith("finance:")]) >= finance_total:
         session["industry_completed"]["finance"] = True
-        # Both industries completed
-        show_completion_message()
-        return
-    
-    # Check if there are any questions available for current industry
+        evaluation_complete = True
+
     if not selected_questions.get(current_industry):
         st.warning(f"⚠️ No questions available for {current_industry} industry with responses.")
         if current_industry == "retail" and selected_questions.get("finance"):
@@ -1389,31 +1377,26 @@ def show_evaluation_interface():
             session["current_question_index"] = 0
             st.rerun()
         elif current_industry == "finance":
-            show_completion_message()
-            return
+            evaluation_complete = True
         else:
             st.error("❌ No questions available for evaluation. Please contact the administrator.")
             return
-    
-    # Get current question
+
     if current_question_index >= len(selected_questions[current_industry]):
-        # All questions for current industry completed
         session["industry_completed"][current_industry] = True
         if current_industry == "retail" and selected_questions.get("finance"):
             session["current_industry"] = "finance"
             session["current_question_index"] = 0
             st.rerun()
         else:
-            show_completion_message()
-            return
-    
+            evaluation_complete = True
+
+    if evaluation_complete:
+        show_completion_message()
+        return
+
     current_question = selected_questions[current_industry][current_question_index]
     question_key = f"{current_industry}:{current_question}"
-    
-    # Check if this question is already completed
-    if question_key in completed_questions:
-        session["current_question_index"] += 1
-        st.rerun()
     
     # Display progress in sidebar
     with st.sidebar:
@@ -1462,6 +1445,7 @@ def show_evaluation_interface():
                 "industry": current_industry,
                 "ratings": question_ratings,
                 "model_mapping": model_mapping,  # Preserve the mapping
+                "ranking": st.session_state.get(f"ranking_{current_question_index + 1}_{current_industry}", []),
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
             
@@ -1470,7 +1454,7 @@ def show_evaluation_interface():
             
             # Clear only the current question's rating inputs for next question
             for key in list(st.session_state.keys()):
-                if key.startswith("quality_") or key.startswith("relevance_") or key.startswith("accuracy_") or key.startswith("uniformity_"):
+                if key.startswith("relevance_") or key.startswith("clarity_") or key.startswith("actionability_"):
                     del st.session_state[key]
             
             st.session_state["scroll_to_top"] = True

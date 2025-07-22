@@ -12,6 +12,8 @@ from plotly.subplots import make_subplots
 from scipy import stats
 import time
 import json
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
 
 st.set_page_config(page_title="Blind Evaluation Analysis", layout="wide")
 
@@ -700,6 +702,18 @@ else:
             st.dataframe(feedback_table, use_container_width=True, height=400)
         else:
             st.info("No qualitative feedback comments available.")
+
+        if feedback_table is not None and not feedback_table['comments'].empty:
+            st.write('**Word Cloud of Feedback Comments:**')
+            text = ' '.join(feedback_table['comments'].dropna().astype(str))
+            if text.strip():
+                wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+                fig, ax = plt.subplots(figsize=(10, 5))
+                ax.imshow(wordcloud, interpolation='bilinear')
+                ax.axis('off')
+                st.pyplot(fig)
+            else:
+                st.info('No feedback comments available for word cloud.')
 
 # ---- AUTO-REFRESH FUNCTIONALITY ----
 if filters['auto_refresh']:
