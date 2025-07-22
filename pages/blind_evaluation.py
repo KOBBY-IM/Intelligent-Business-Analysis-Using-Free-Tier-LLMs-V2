@@ -15,6 +15,9 @@ from streamlit_sortables import sort_items
 import smtplib
 from email.mime.text import MIMEText
 
+# Remove the debug print for secrets
+# st.write("Available secrets:", list(st.secrets.keys()))
+
 # Page configuration
 st.set_page_config(
     page_title="Blind Evaluation - LLM Comparison",
@@ -1468,12 +1471,11 @@ def show_evaluation_interface():
         st.error("❌ No responses available for the selected question.")
 
 def send_admin_notification(tester_email, tester_name):
-    # Load email config from Streamlit secrets
-    ADMIN_EMAIL = st.secrets["ADMIN_EMAIL"]
-    SMTP_SERVER = st.secrets["SMTP_SERVER"]
-    SMTP_PORT = int(st.secrets["SMTP_PORT"])
-    SMTP_USER = st.secrets["SMTP_USER"]
-    SMTP_PASS = st.secrets["SMTP_PASS"]
+    ADMIN_EMAIL = st.secrets["email"]["admin_email"]
+    SMTP_SERVER = st.secrets["email"]["smtp_server"]
+    SMTP_PORT = int(st.secrets["email"]["smtp_port"])
+    SMTP_USER = st.secrets["email"]["smtp_user"]
+    SMTP_PASS = st.secrets["email"]["smtp_pass"]
 
     subject = "New Blind Evaluation Submission"
     body = f"A new blind evaluation has been submitted by {tester_name} ({tester_email})."
