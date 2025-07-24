@@ -239,8 +239,14 @@ class DataStore:
             existing_data = self._load_from_local("evaluations")
             existing_data.append(evaluation_data)
             
-            # Save to file
-            file_path = os.path.join('data', 'evaluations.json')
+            # Save to file with path validation
+            data_dir = 'data'
+            if not os.path.exists(data_dir):
+                os.makedirs(data_dir)
+            file_path = os.path.normpath(os.path.join(data_dir, 'evaluations.json'))
+            # Ensure the file path is within the data directory
+            if not file_path.startswith(os.path.normpath(data_dir)):
+                raise ValueError("Invalid file path detected")
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(existing_data, f, indent=2, default=str)
             
@@ -593,7 +599,9 @@ def validate_evaluation_data(evaluation_data: Dict[str, Any]) -> bool:
     
     # Validate email format
     email = evaluation_data.get('tester_email', '')
-    if '@' not in email or '.' not in email:
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
         st.error("Invalid email format")
         return False
     
@@ -633,7 +641,9 @@ def validate_registration_data(registration_data: Dict[str, Any]) -> bool:
     
     # Validate email format
     email = registration_data.get('email', '')
-    if '@' not in email or '.' not in email:
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
         st.error("Invalid email format")
         return False
     

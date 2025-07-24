@@ -54,9 +54,12 @@ def load_evaluation_data() -> Tuple[Dict, List[Dict]]:
         
         return questions, responses
     except Exception as e:
-        st.error(f"Error loading evaluation data: {str(e)}")
-        st.error(f"Debug: questions_path = {os.path.join('data', 'eval_questions.json')}")
-        st.error(f"Debug: responses_path = {os.path.join('data', 'pregenerated_responses.json')}")
+        st.error("Error loading evaluation data. Please contact support if this issue persists.")
+        # Log detailed error for debugging (but don't expose to user)
+        import logging
+        logging.error(f"Error loading evaluation data: {str(e)}")
+        logging.error(f"Questions path: {os.path.join('data', 'eval_questions.json')}")
+        logging.error(f"Responses path: {os.path.join('data', 'pregenerated_responses.json')}")
         return {}, []
 
 def create_sample_responses(questions: Dict) -> List[Dict]:

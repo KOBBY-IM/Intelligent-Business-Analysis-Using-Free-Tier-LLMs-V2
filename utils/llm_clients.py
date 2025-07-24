@@ -150,7 +150,8 @@ class OpenRouterClient(BaseLLMClient):
         except Exception as e:
             # If all retries fail, provide a fallback response
             print(f"OpenRouter failed after all retries: {e}")
-            return f"Unable to generate response due to API limitations. Please try again later or contact support. Error: {str(e)}"
+            # Don't expose detailed error information that might contain sensitive data
+            return "Unable to generate response due to API limitations. Please try again later or contact support."
 
 # Utility function to select and instantiate a client by provider/model
 

@@ -30,8 +30,36 @@ def init_session_state():
     if "tester_registrations" not in st.session_state:
         st.session_state["tester_registrations"] = {}
     
+    # Clean up old session data to prevent memory leaks
+    cleanup_old_session_data()
+    
     # DO NOT initialize current_page here - let the navigation logic handle it
     # This ensures user's page selection persists across refreshes
+
+def cleanup_old_session_data():
+    """Clean up old session data to prevent memory leaks"""
+    from datetime import datetime, timedelta
+    
+    # Clean up registrations older than 24 hours that haven't completed evaluation
+    if "tester_registrations" in st.session_state:
+        current_time = datetime.now()
+        to_remove = []
+        
+        for email, reg_data in st.session_state["tester_registrations"].items():
+            if "registration_timestamp" in reg_data:
+                try:
+                    reg_time = datetime.fromisoformat(reg_data["registration_timestamp"].replace('Z', '+00:00'))
+                    # Remove timezone info for comparison
+                    reg_time = reg_time.replace(tzinfo=None)
+                    if (current_time - reg_time > timedelta(hours=24) and 
+                        not reg_data.get("evaluation_completed", False)):
+                        to_remove.append(email)
+                except (ValueError, TypeError):
+                    # Invalid timestamp, mark for removal
+                    to_remove.append(email)
+        
+        for email in to_remove:
+            del st.session_state["tester_registrations"][email]
 
 def main():
     """Main application entry point"""

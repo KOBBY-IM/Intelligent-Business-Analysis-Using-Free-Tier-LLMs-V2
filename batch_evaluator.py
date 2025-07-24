@@ -183,13 +183,14 @@ def save_csv(data: List[Dict[str, Any]], path: str):
     # Check if file exists to determine if we need to write header
     file_exists = os.path.exists(path)
     
-    # If file exists, load existing data and combine with new data
+    # More efficient approach: append directly to CSV without loading entire file
     if file_exists:
         try:
-            existing_df = pd.read_csv(path)
-            new_df = pd.DataFrame(data)
-            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-            combined_df.to_csv(path, index=False)
+            # For large files, use append mode instead of loading entire file
+            with open(path, 'a', newline='', encoding='utf-8') as f:
+                if data:  # Ensure we have data before creating writer
+                    writer = csv.DictWriter(f, fieldnames=list(data[0].keys()))
+                    writer.writerows(data)
         except Exception as e:
             print(f"Warning: Could not append to existing CSV, overwriting: {e}")
             # Fallback to overwrite if there's an issue

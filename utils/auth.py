@@ -51,7 +51,7 @@ def hash_credential(credential: str) -> str:
 
 def verify_admin_access(password: str) -> bool:
     """
-    Verify administrator password.
+    Verify administrator password using secure hashing.
     
     Args:
         password: The password provided by the admin
@@ -60,11 +60,23 @@ def verify_admin_access(password: str) -> bool:
         True if password is valid, False otherwise
     """
     expected_password = get_secret_safely("auth.admin_password")
-    if not expected_password:
+    expected_password_hash = get_secret_safely("auth.admin_password_hash")
+    
+    if not expected_password and not expected_password_hash:
         st.error("🔒 Admin access not configured. Please contact the system administrator.")
         return False
     
-    return password.strip() == expected_password.strip()
+    # For backward compatibility, if only plain password is configured, hash it
+    if expected_password and not expected_password_hash:
+        st.warning("⚠️ Admin password is not hashed. Please update to use hashed passwords.")
+        return password.strip() == expected_password.strip()
+    
+    # Use secure hash comparison
+    if expected_password_hash:
+        password_hash = hash_credential(password.strip())
+        return password_hash == expected_password_hash.strip()
+    
+    return False
 
 def get_current_user_role() -> Role:
     """

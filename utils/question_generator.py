@@ -45,7 +45,8 @@ class QuestionGenerator:
                     try:
                         pd.to_datetime(df[col].iloc[0])
                         analysis['date_columns'].append(col)
-                    except:
+                    except (ValueError, TypeError, AttributeError):
+                        # Not a date column, skip silently
                         pass
             
             # Get unique values for categorical columns
