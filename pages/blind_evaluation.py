@@ -831,7 +831,12 @@ def save_evaluation_data(evaluation_data: Dict):
         mark_evaluation_completed(evaluation_data.get("tester_email"))
         
     except Exception as e:
-        st.error(f"Error saving evaluation: {str(e)}")
+        st.error("❌ Failed to submit evaluation. Please try again or contact support.")
+        # Log detailed error for debugging (but don't expose to user)
+        import logging
+        logging.error(f"Error saving evaluation: {str(e)}")
+        # Don't mark as submitted if there was an error
+        return
 
 def mark_evaluation_completed(email: str):
     """
@@ -853,6 +858,8 @@ def mark_evaluation_completed(email: str):
             # Mark as completed
             registrations[email]["evaluation_completed"] = True
             registrations[email]["evaluation_completed_timestamp"] = datetime.now(timezone.utc).isoformat()
+            # Ensure email is in the data being saved
+            registrations[email]["email"] = email
             
             # Save back to GCS
             success = data_store.save_registration_data(registrations[email])
@@ -860,9 +867,15 @@ def mark_evaluation_completed(email: str):
             if success:
                 st.success("✅ Evaluation completion status saved to cloud storage")
             else:
-                st.error("❌ Failed to save completion status to cloud storage")
+                st.warning("⚠️ Could not update completion status in cloud storage, but evaluation was saved")
             
             # Also update session state if available
+            if "tester_registrations" in st.session_state and email in st.session_state["tester_registrations"]:
+                st.session_state["tester_registrations"][email]["evaluation_completed"] = True
+                st.session_state["tester_registrations"][email]["evaluation_completed_timestamp"] = datetime.now(timezone.utc).isoformat()
+        else:
+            # If registration not found in cloud, still update session state
+            st.warning("⚠️ Registration not found in cloud storage, but evaluation was saved")
             if "tester_registrations" in st.session_state and email in st.session_state["tester_registrations"]:
                 st.session_state["tester_registrations"][email]["evaluation_completed"] = True
                 st.session_state["tester_registrations"][email]["evaluation_completed_timestamp"] = datetime.now(timezone.utc).isoformat()
@@ -1070,7 +1083,7 @@ def show_completion_message():
                 mark_evaluation_completed(tester_email)
             # Mark evaluation as submitted to show completion message
             st.session_state["evaluation_submitted"] = True
-        st.rerun()
+            st.rerun()
     
 
 
@@ -1474,26 +1487,34 @@ def show_evaluation_interface():
         st.error("❌ No responses available for the selected question.")
 
 def send_admin_notification(tester_email, tester_name):
-    ADMIN_EMAIL = st.secrets["email"]["admin_email"]
-    SMTP_SERVER = st.secrets["email"]["smtp_server"]
-    SMTP_PORT = int(st.secrets["email"]["smtp_port"])
-    SMTP_USER = st.secrets["email"]["smtp_user"]
-    SMTP_PASS = st.secrets["email"]["smtp_pass"]
-
-    subject = "New Blind Evaluation Submission"
-    body = f"A new blind evaluation has been submitted by {tester_name} ({tester_email})."
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = SMTP_USER
-    msg["To"] = ADMIN_EMAIL
-
+    """Send admin notification email (non-blocking)"""
     try:
+        # Check if email configuration is available
+        if "email" not in st.secrets:
+            print("Email configuration not found in secrets, skipping notification")
+            return
+            
+        ADMIN_EMAIL = st.secrets["email"]["admin_email"]
+        SMTP_SERVER = st.secrets["email"]["smtp_server"]
+        SMTP_PORT = int(st.secrets["email"]["smtp_port"])
+        SMTP_USER = st.secrets["email"]["smtp_user"]
+        SMTP_PASS = st.secrets["email"]["smtp_pass"]
+
+        subject = "New Blind Evaluation Submission"
+        body = f"A new blind evaluation has been submitted by {tester_name} ({tester_email})."
+        msg = MIMEText(body)
+        msg["Subject"] = subject
+        msg["From"] = SMTP_USER
+        msg["To"] = ADMIN_EMAIL
+
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
             server.sendmail(SMTP_USER, ADMIN_EMAIL, msg.as_string())
+        print("Admin notification email sent successfully")
     except Exception as e:
-        print(f"Email notification failed: {e}")
+        # Don't let email failure block the submission
+        print(f"Email notification failed (non-critical): {e}")
 
 # Main execution
 if __name__ == "__main__":
