@@ -808,12 +808,15 @@ def collect_final_evaluation_data() -> Dict:
     
     return evaluation_data
 
-def save_evaluation_data(evaluation_data: Dict):
+def save_evaluation_data(evaluation_data: Dict) -> bool:
     """
     Save evaluation data to persistent storage using GCS.
     
     Args:
         evaluation_data: The evaluation data to save
+        
+    Returns:
+        bool: True if successful, False otherwise
     """
     try:
         # Use GCS data store
@@ -828,12 +831,13 @@ def save_evaluation_data(evaluation_data: Dict):
             st.success("✅ Evaluation submitted successfully to cloud storage!")
             # Send admin notification (non-blocking)
             send_admin_notification(evaluation_data.get("tester_email"), evaluation_data.get("tester_name"))
+            
+            # Mark evaluation as completed in registration
+            mark_evaluation_completed(evaluation_data.get("tester_email"))
+            return True
         else:
             st.error("❌ Failed to save evaluation to cloud storage")
-            return
-        
-        # Mark evaluation as completed in registration
-        mark_evaluation_completed(evaluation_data.get("tester_email"))
+            return False
         
     except Exception as e:
         st.error("❌ Failed to submit evaluation. Please try again or contact support.")
@@ -841,7 +845,7 @@ def save_evaluation_data(evaluation_data: Dict):
         import logging
         logging.error(f"Error saving evaluation: {str(e)}")
         # Don't mark as submitted if there was an error
-        return
+        return False
 
 def mark_evaluation_completed(email: str):
     """
@@ -1078,17 +1082,31 @@ def show_completion_message():
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        if st.button("📤 Submit Final Assessment", type="primary", use_container_width=True):
+        # Prevent multiple submissions
+        if st.session_state.get("submission_in_progress", False):
+            st.button("📤 Submitting...", type="primary", use_container_width=True, disabled=True)
+        elif st.button("📤 Submit Final Assessment", type="primary", use_container_width=True):
+            # Set submission in progress to prevent double clicks
+            st.session_state["submission_in_progress"] = True
+            
             # Collect and save final evaluation data
             evaluation_data = collect_final_evaluation_data()
-            save_evaluation_data(evaluation_data)
-            # Mark evaluation as completed
-            tester_email = st.session_state.get("user_email")
-            if tester_email:
-                mark_evaluation_completed(tester_email)
-            # Mark evaluation as submitted to show completion message
-            st.session_state["evaluation_submitted"] = True
-            st.rerun()
+            
+            # Try to save evaluation data
+            success = save_evaluation_data(evaluation_data)
+            
+            if success:
+                # Only mark as submitted if save was successful
+                st.session_state["evaluation_submitted"] = True
+                # Clear submission in progress flag
+                st.session_state["submission_in_progress"] = False
+                st.rerun()
+            else:
+                # Clear submission in progress flag on failure
+                st.session_state["submission_in_progress"] = False
+                # Don't rerun or set submitted flag on failure
+                st.error("❌ Please check the error above and try submitting again.")
+                return
     
 
 
