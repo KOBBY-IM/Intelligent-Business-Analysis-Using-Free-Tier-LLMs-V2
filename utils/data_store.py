@@ -517,34 +517,37 @@ class DataStore:
             return False
     
     def _evaluations_to_dataframe(self, evaluations: List[Dict[str, Any]]) -> pd.DataFrame:
-        """Convert evaluations list to pandas DataFrame."""
+        """Convert evaluations list to pandas DataFrame - Fixed to match actual data structure."""
         rows = []
         
         for eval_data in evaluations:
-            base_row = {
-                'tester_email': eval_data.get('tester_email', ''),
-                'tester_name': eval_data.get('tester_name', ''),
-                'evaluation_timestamp': eval_data.get('evaluation_timestamp', ''),
-                'question': eval_data.get('current_question', ''),
-                'industry': eval_data.get('current_industry', ''),
-                'question_key': eval_data.get('question_key', '')
-            }
+            tester_email = eval_data.get("tester_email", "")
+            tester_name = eval_data.get("tester_name", "")
+            timestamp = eval_data.get("evaluation_timestamp", "")
             
-            # Add ratings for each response (A, B, C, D)
-            ratings = eval_data.get('ratings', {})
-            for response_id in ['A', 'B', 'C', 'D']:
-                if response_id in ratings:
-                    rating_data = ratings[response_id]
-                    row = base_row.copy()
-                    row.update({
-                        'response_id': response_id,
-                        'llm_model': rating_data.get('response_id', ''),
-                        'quality_rating': rating_data.get('quality', ''),
-                        'relevance_rating': rating_data.get('relevance', ''),
-                        'accuracy_rating': rating_data.get('accuracy', ''),
-                        'uniformity_rating': rating_data.get('uniformity', ''),
-                        'comments': rating_data.get('comments', '')
-                    })
+            # Process individual question ratings (correct structure)
+            individual_ratings = eval_data.get("individual_question_ratings", {})
+            for qkey, qdata in individual_ratings.items():
+                question = qdata.get("question", "")
+                industry = qdata.get("industry", "")
+                model_mapping = qdata.get("model_mapping", {})
+                
+                # Process ratings for each response (A, B, C, D)
+                for resp_id, rating in qdata.get("ratings", {}).items():
+                    row = {
+                        "tester_email": tester_email,
+                        "tester_name": tester_name,
+                        "evaluation_timestamp": timestamp,
+                        "question_key": qkey,
+                        "question": question,
+                        "industry": industry,
+                        "response_id": resp_id,
+                        "llm_model": rating.get("response_id", model_mapping.get(resp_id, "")),
+                        "relevance": rating.get("relevance", ""),
+                        "clarity": rating.get("clarity", ""),
+                        "actionability": rating.get("actionability", ""),
+                        "comments": rating.get("comments", "")
+                    }
                     rows.append(row)
         
         return pd.DataFrame(rows)
@@ -608,6 +611,10 @@ class DataStore:
             
         except Exception as e:
             st.error(f"Failed to load batch metrics: {str(e)}")
+            # For batch metrics, return empty list is acceptable since it's not overwriting data
+            # But log the error for monitoring
+            import logging
+            logging.error(f"Batch metrics load failed: {str(e)}")
             return []
 
 
