@@ -189,9 +189,34 @@ class DataStore:
         try:
             bucket = self.storage_client.bucket(self.bucket_name)
             
-            # Load existing data
-            existing_data = self._load_from_gcs("evaluations")
+            # Load existing data - this will raise exception if load fails
+            try:
+                existing_data = self._load_from_gcs("evaluations")
+            except RuntimeError as load_error:
+                # If we can't load existing data, we cannot safely append
+                st.error("❌ Cannot load existing evaluation data from cloud storage. Aborting save to prevent data loss.")
+                st.error("Please check your cloud storage connection and try again.")
+                return False
+            
+            # Check for duplicate evaluations (additional safety measure)
+            evaluation_id = evaluation_data.get("evaluation_id")
+            tester_email = evaluation_data.get("tester_email")
+            
+            if evaluation_id:
+                # Check if this evaluation ID already exists
+                for existing_eval in existing_data:
+                    if existing_eval.get("evaluation_id") == evaluation_id:
+                        st.warning(f"⚠️ Duplicate evaluation detected (ID: {evaluation_id}). Skipping save to prevent data duplication.")
+                        return True  # Return success since the data is already saved
+            
             existing_data.append(evaluation_data)
+            
+            # Create backup before saving (safety measure)
+            backup_blob = bucket.blob(f"evaluations_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+            backup_blob.upload_from_string(
+                json.dumps(existing_data[:-1], indent=2, default=str),  # Backup without the new evaluation
+                content_type="application/json"
+            )
             
             # Save updated data
             blob = bucket.blob("evaluations.json")
@@ -235,8 +260,25 @@ class DataStore:
     def _save_to_local(self, evaluation_data: Dict[str, Any]) -> bool:
         """Save evaluation data to local file system."""
         try:
-            # Load existing data
-            existing_data = self._load_from_local("evaluations")
+            # Load existing data - this will raise exception if load fails
+            try:
+                existing_data = self._load_from_local("evaluations")
+            except RuntimeError as load_error:
+                # If we can't load existing data, we cannot safely append
+                st.error("❌ Cannot load existing evaluation data from local storage. Aborting save to prevent data loss.")
+                st.error("Please check your file system permissions and try again.")
+                return False
+            
+            # Check for duplicate evaluations (additional safety measure)
+            evaluation_id = evaluation_data.get("evaluation_id")
+            
+            if evaluation_id:
+                # Check if this evaluation ID already exists
+                for existing_eval in existing_data:
+                    if existing_eval.get("evaluation_id") == evaluation_id:
+                        st.warning(f"⚠️ Duplicate evaluation detected (ID: {evaluation_id}). Skipping save to prevent data duplication.")
+                        return True  # Return success since the data is already saved
+            
             existing_data.append(evaluation_data)
             
             # Save to file with path validation
@@ -340,10 +382,13 @@ class DataStore:
                 content = blob.download_as_text()
                 return json.loads(content) if content else []
             else:
+                # File doesn't exist yet, return empty list for first time
                 return []
         except Exception as e:
             st.error(f"GCS load error: {str(e)}")
-            return []
+            # CRITICAL: Don't return empty list on error as it would cause data loss
+            # Instead, raise the exception to prevent save operation
+            raise RuntimeError(f"Failed to load existing data from GCS: {str(e)}")
     
     def _load_from_gdrive(self, data_type: str) -> List[Dict[str, Any]]:
         """Load data from Google Drive."""
@@ -364,10 +409,12 @@ class DataStore:
                     content = f.read()
                     return json.loads(content) if content else []
             else:
+                # File doesn't exist yet, return empty list for first time
                 return []
         except Exception as e:
             st.error(f"Local load error: {str(e)}")
-            return []
+            # CRITICAL: Don't return empty list on error as it would cause data loss
+            raise RuntimeError(f"Failed to load existing data from local storage: {str(e)}")
     
     def _load_registration_from_gcs(self) -> Dict[str, Any]:
         """Load registration data from Google Cloud Storage."""

@@ -775,7 +775,12 @@ def collect_final_evaluation_data() -> Dict:
     # Get all accumulated ratings from the session
     all_ratings = st.session_state.get("all_evaluation_ratings", {})
     
+    # Generate unique evaluation ID to prevent duplicates and data loss
+    import uuid
+    evaluation_id = str(uuid.uuid4())
+    
     evaluation_data = {
+        "evaluation_id": evaluation_id,
         "tester_email": st.session_state.get("user_email"),
         "tester_name": st.session_state.get("tester_name"),
         "evaluation_timestamp": datetime.now(timezone.utc).isoformat(),
