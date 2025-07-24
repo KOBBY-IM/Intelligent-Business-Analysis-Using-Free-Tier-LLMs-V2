@@ -53,7 +53,9 @@ class VectorDB:
             query_embeddings=[query_embedding],
             n_results=top_k
         )
-        # Return metadata for top results
+        # Safely return metadata for top results
+        if "metadatas" not in results or not results["metadatas"] or not results["metadatas"][0]:
+            return []
         return [meta for meta in results["metadatas"][0]]
 
     def num_documents(self) -> int:

@@ -106,7 +106,8 @@ class SecurityConfig:
                     return True
             
             return False
-        except Exception:
+        except (OSError, ValueError, TypeError) as e:
+            # Handle file path validation errors safely
             return False
     
     @staticmethod

@@ -58,8 +58,10 @@ def cleanup_old_session_data():
                     # Invalid timestamp, mark for removal
                     to_remove.append(email)
         
+        # Safely remove marked emails to prevent KeyError race conditions
         for email in to_remove:
-            del st.session_state["tester_registrations"][email]
+            if email in st.session_state["tester_registrations"]:
+                del st.session_state["tester_registrations"][email]
 
 def main():
     """Main application entry point"""

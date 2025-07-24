@@ -261,7 +261,8 @@ def perform_statistical_tests(human_df, group_cols, rating_cols):
                         "p_value": p_value,
                         "significant": p_value < 0.05
                     }
-                except:
+                except (ValueError, TypeError, ZeroDivisionError) as e:
+                    # Skip statistical tests that fail due to insufficient data or numerical issues
                     pass
     
     return results

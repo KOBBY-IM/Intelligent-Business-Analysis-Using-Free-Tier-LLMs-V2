@@ -1481,8 +1481,11 @@ def show_evaluation_interface():
             session["current_question_index"] += 1
             
             # Clear only the current question's rating inputs for next question
-            for key in list(st.session_state.keys()):
-                if key.startswith("relevance_") or key.startswith("clarity_") or key.startswith("actionability_"):
+            # Use list() to avoid RuntimeError from modifying dict during iteration
+            keys_to_remove = [key for key in st.session_state.keys() 
+                            if key.startswith("relevance_") or key.startswith("clarity_") or key.startswith("actionability_")]
+            for key in keys_to_remove:
+                if key in st.session_state:
                     del st.session_state[key]
             
             st.session_state["scroll_to_top"] = True

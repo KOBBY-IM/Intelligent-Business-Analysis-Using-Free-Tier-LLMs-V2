@@ -81,7 +81,15 @@ class GroqClient(BaseLLMClient):
             resp = requests.post(self.endpoint, headers=headers, json=data, timeout=60)
             resp.raise_for_status()
             result = resp.json()
-            return result["choices"][0]["message"]["content"].strip()
+            
+            # Safely access nested response structure
+            if "choices" not in result or not result["choices"]:
+                raise ValueError("Invalid API response: missing choices")
+            choice = result["choices"][0]
+            if "message" not in choice or "content" not in choice["message"]:
+                raise ValueError("Invalid API response: missing message content")
+            
+            return choice["message"]["content"].strip()
         
         return self._retry_with_backoff(_make_request)
 
@@ -109,7 +117,17 @@ class GeminiClient(BaseLLMClient):
             resp = requests.post(self.endpoint, headers=headers, json=data, timeout=60)
             resp.raise_for_status()
             result = resp.json()
-            return result["candidates"][0]["content"]["parts"][0]["text"].strip()
+            
+            # Safely access nested response structure
+            if "candidates" not in result or not result["candidates"]:
+                raise ValueError("Invalid API response: missing candidates")
+            candidate = result["candidates"][0]
+            if "content" not in candidate or "parts" not in candidate["content"] or not candidate["content"]["parts"]:
+                raise ValueError("Invalid API response: missing content parts")
+            if "text" not in candidate["content"]["parts"][0]:
+                raise ValueError("Invalid API response: missing text content")
+            
+            return candidate["content"]["parts"][0]["text"].strip()
         
         return self._retry_with_backoff(_make_request)
 
@@ -143,7 +161,15 @@ class OpenRouterClient(BaseLLMClient):
             resp = requests.post(self.endpoint, headers=headers, json=data, timeout=60)
             resp.raise_for_status()
             result = resp.json()
-            return result["choices"][0]["message"]["content"].strip()
+            
+            # Safely access nested response structure
+            if "choices" not in result or not result["choices"]:
+                raise ValueError("Invalid API response: missing choices")
+            choice = result["choices"][0]
+            if "message" not in choice or "content" not in choice["message"]:
+                raise ValueError("Invalid API response: missing message content")
+            
+            return choice["message"]["content"].strip()
         
         try:
             return self._retry_with_backoff(_make_request)
