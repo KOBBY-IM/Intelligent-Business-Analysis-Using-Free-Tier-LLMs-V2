@@ -1067,7 +1067,7 @@ def show_completion_message():
                 mark_evaluation_completed(tester_email)
             # Mark evaluation as submitted to show completion message
             st.session_state["evaluation_submitted"] = True
-        st.rerun()
+            st.rerun()
     
 
 
