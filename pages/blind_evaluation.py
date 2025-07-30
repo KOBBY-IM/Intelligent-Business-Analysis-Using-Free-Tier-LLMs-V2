@@ -297,7 +297,7 @@ def display_question_and_responses(question: str, industry: str, responses: List
     if question_number is not None:
         st.markdown(f"""
         <h2 style="font-size: 1.4rem; margin-bottom: 0.8rem; color: #1f77b4;">
-        🎯 Question {question_number} of 6 ({industry.title()} Industry)
+        🎯 Question {question_number} of 4 ({industry.title()} Industry)
         </h2>
         """, unsafe_allow_html=True)
     else:
@@ -968,9 +968,11 @@ def show_completion_message():
     ### 📋 Evaluation Summary
     
     You have successfully completed:
-    - ✅ **{retail_count} Retail Industry questions**
-    - ✅ **{finance_count} Finance Industry questions**
-    - ✅ **Total: {total_count} questions evaluated**
+    - ✅ **{retail_count} Retail Industry questions** (randomly selected from 10 available)
+    - ✅ **{finance_count} Finance Industry questions** (randomly selected from 10 available)
+    - ✅ **Total: {total_count} questions evaluated** (4 per industry for optimal experience)
+    
+    **⏱️ Streamlined Evaluation**: This 4-question format reduces fatigue while maintaining statistical validity.
     """)
     
     # Final Feedback Collection
@@ -1305,7 +1307,7 @@ def show_evaluation_interface():
     st.markdown("""
     <div style="font-size: 1.0rem; line-height: 1.4; margin-bottom: 1rem; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 4px solid #1f77b4;">
     <strong>Evaluate AI responses without knowing which model generated each.</strong><br>
-    Complete 6 questions per industry: <strong>Retail</strong> → <strong>Finance</strong> (randomly selected from available questions)
+    Complete 4 questions per industry: <strong>Retail</strong> → <strong>Finance</strong> (randomly selected from available questions)
     </div>
     """, unsafe_allow_html=True)
     
@@ -1344,9 +1346,9 @@ def show_evaluation_interface():
                 if len(question_responses) >= 2:  # Need at least 2 responses to evaluate
                     questions_with_responses.append(question)
             
-            # Select questions (up to 6, or all available if less than 6)
+            # Select questions (up to 4, or all available if less than 4)
             if questions_with_responses:
-                selected = random.sample(questions_with_responses, min(6, len(questions_with_responses)))
+                selected = random.sample(questions_with_responses, min(4, len(questions_with_responses)))
                 st.session_state["evaluation_session"]["selected_questions"][industry] = selected
             else:
                 st.session_state["evaluation_session"]["selected_questions"][industry] = []

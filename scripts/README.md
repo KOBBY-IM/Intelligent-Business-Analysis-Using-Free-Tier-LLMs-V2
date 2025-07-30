@@ -1,37 +1,77 @@
-# Scripts Directory
+# Scripts
 
-This folder contains utility scripts for setup, configuration, and maintenance of the LLM evaluation system.
+This directory contains utility scripts for setup, deployment, and maintenance.
 
-## Setup Scripts
-- `setup_gcs.py` - Google Cloud Storage setup and configuration
-- `setup_gcs.sh` - Shell script for GCS setup automation
-- `configure_gcs.py` - GCS configuration and credential management
+## Directory Structure
 
-## Diagnostic Scripts
-- `check_bucket.py` - Verify GCS bucket accessibility and permissions
-- `check_gcs_data.py` - Inspect and validate data in GCS storage
+### **Setup** (`setup/`)
+
+Setup and configuration scripts:
+
+- **`setup_gcs.py`** - Google Cloud Storage setup script
+- **`setup_gcs.sh`** - GCS setup shell script
+- **`configure_gcs.py`** - GCS configuration script
+
+### **Deployment** (`deployment/`)
+
+Deployment and maintenance scripts (to be added as needed).
+
+## Script Categories
+
+### **Infrastructure Setup**
+- Google Cloud Storage configuration
+- Environment setup
+- Service account configuration
+- Permission management
+
+### **Deployment Scripts**
+- Automated deployment procedures
+- Environment validation
+- Configuration management
+- Health checks
+
+### **Maintenance Scripts**
+- Data backup procedures
+- System monitoring
+- Performance optimization
+- Cleanup operations
 
 ## Usage
 
-### Initial Setup
-```bash
-# Setup GCS integration
-python scripts/setup_gcs.py
+### **Setup Scripts**
 
-# Or use the shell script
-bash scripts/setup_gcs.sh
+```bash
+# Run GCS setup
+python3 scripts/setup/setup_gcs.py
+
+# Run setup shell script
+bash scripts/setup/setup_gcs.sh
 ```
 
-### Diagnostics
-```bash
-# Check GCS connectivity
-python scripts/check_bucket.py
+### **Configuration Scripts**
 
-# Validate stored data
-python scripts/check_gcs_data.py
+```bash
+# Configure GCS
+python3 scripts/setup/configure_gcs.py
 ```
 
-## Notes
-- These scripts are for development and deployment setup
-- They are not part of the main application runtime
-- Ensure proper credentials are configured before running GCS scripts 
+## Dependencies
+
+- Google Cloud SDK
+- Python 3.9+
+- Required Python packages (see requirements.txt)
+
+## Security
+
+- Scripts handle sensitive configuration data
+- Use environment variables for secrets
+- Follow security best practices
+- Validate permissions before execution
+
+## Error Handling
+
+All scripts include:
+- Comprehensive error handling
+- Logging and debugging output
+- Rollback procedures
+- Validation checks 

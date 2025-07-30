@@ -145,12 +145,7 @@ class OpenRouterClient(BaseLLMClient):
             result = resp.json()
             return result["choices"][0]["message"]["content"].strip()
         
-        try:
-            return self._retry_with_backoff(_make_request)
-        except Exception as e:
-            # If all retries fail, provide a fallback response
-            print(f"OpenRouter failed after all retries: {e}")
-            return f"Unable to generate response due to API limitations. Please try again later or contact support. Error: {str(e)}"
+        return self._retry_with_backoff(_make_request)
 
 # Utility function to select and instantiate a client by provider/model
 

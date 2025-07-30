@@ -61,7 +61,7 @@ def main():
         nav_options.insert(-1, "Analysis Dashboard")
         nav_options.insert(-1, "Admin Panel")
         # Add direct access to analysis pages for admins
-        nav_options.extend(["Blind Evaluation Analysis", "Technical Metrics Analysis"])
+        nav_options.extend(["Blind Evaluation Analysis", "Technical Metrics Analysis", "Provider Comparison Analysis"])
     
     # If not authenticated, show admin login option only
     if not current_role:
@@ -126,6 +126,9 @@ def main():
     elif page == "Technical Metrics Analysis":
         if enforce_page_access("Technical Metrics Analysis", "admin"):
             st.switch_page("pages/technical_metrics_analysis.py")
+    elif page == "Provider Comparison Analysis":
+        if enforce_page_access("Provider Comparison Analysis", "admin"):
+            st.switch_page("pages/provider_comparison.py")
     elif page == "RAG Demo":
         st.switch_page("pages/rag_demo.py")
     else:

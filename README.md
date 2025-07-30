@@ -66,15 +66,48 @@ This system provides evidence-based guidance for organizations selecting optimal
 
 ## 📁 Project Structure
 
+For a complete overview of the organized project structure, see [PROJECT_ORGANIZATION.md](PROJECT_ORGANIZATION.md).
+
+### **Core Directories**
+
 ```
-├── app.py                 # Main Streamlit application
-├── requirements.txt       # Python dependencies
-├── .streamlit/
-│   └── secrets.toml      # Configuration template
-├── utils/                # Utility modules (future)
-├── pages/                # Streamlit pages (future)
-├── data/                 # Industry datasets (future)
-└── README.md            # This file
+├── 📁 Core Application
+│   ├── app.py                          # Main Streamlit application
+│   ├── requirements.txt                 # Python dependencies
+│   └── README.md                       # Project overview
+│
+├── 📁 Pages (Streamlit Pages)
+│   ├── analysis.py                     # Analysis dashboard
+│   ├── blind_evaluation.py             # Human blind evaluation interface
+│   ├── provider_comparison.py          # Provider-level analysis
+│   └── technical_metrics_analysis.py   # Technical performance analysis
+│
+├── 📁 Utils (Core Utilities)
+│   ├── auth.py                         # Authentication system
+│   ├── data_loader.py                  # Data loading utilities
+│   ├── llm_clients.py                  # LLM API clients
+│   ├── rag_pipeline.py                 # RAG pipeline orchestration
+│   └── vector_db.py                    # Vector database operations
+│
+├── 📁 Analysis Scripts
+│   ├── analyze_data.py                 # Comprehensive data analysis
+│   ├── test_4_question_implementation.py # 4-question implementation testing
+│   └── question_reduction_impact_analysis.py # Question reduction analysis
+│
+├── 📁 Documentation
+│   ├── implementation/                 # Implementation documentation
+│   ├── deployment/                     # Deployment documentation
+│   ├── analysis/                       # Analysis documentation
+│   └── testing/                        # Testing documentation
+│
+├── 📁 Automation
+│   ├── batch_evaluator.py              # Automated batch evaluation
+│   └── monitor.py                      # System monitoring
+│
+└── 📁 Data
+    ├── batch_eval_metrics.csv          # Batch evaluation metrics
+    ├── eval_questions.json             # Evaluation questions
+    └── evaluations.json                # Human evaluation data
 ```
 
 ## 🔧 Configuration

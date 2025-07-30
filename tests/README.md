@@ -1,36 +1,65 @@
-# Tests Directory
+# Tests
 
-This folder contains all test files for the Intelligent Business Analysis LLM project.
+This directory contains test files for the LLM evaluation system.
 
-## Test Categories
+## Directory Structure
 
-### Unit Tests
-- `test_data_store.py` - Tests for data storage and retrieval functionality
-- `test_blind_evaluation.py` - Tests for blind evaluation system
-- `test_rag_pipeline.py` - Tests for RAG pipeline components
-- `test_registration.py` - Tests for user registration system
+### **Unit Tests** (`unit/`)
 
-### Integration Tests
-- `test_data_collection_gcs.py` - GCS data collection integration tests
-- `test_gcs_*.py` - Various GCS connectivity and functionality tests
-- `test_llm_connectivity.py` - LLM API connectivity tests
-- `test_single_rag_llm.py` - Single LLM RAG functionality tests
+- **`test_error_tracking.py`** - Tests for enhanced error tracking functionality
+  - Tests error type classification
+  - Validates error handling in batch evaluator
+  - Tests LLM client error handling
+  - Verifies error data collection
+
+### **Integration Tests** (`integration/`)
+
+Integration tests for system components (to be added as needed).
 
 ## Running Tests
 
+### **Unit Tests**
+
 ```bash
-# Activate virtual environment
-source venv/bin/activate
+# Run specific unit test
+python3 tests/unit/test_error_tracking.py
 
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/test_data_store.py
-
-# Run with verbose output
-pytest -v
+# Run all unit tests
+python3 -m pytest tests/unit/
 ```
 
+### **Integration Tests**
+
+```bash
+# Run integration tests
+python3 -m pytest tests/integration/
+```
+
+## Test Categories
+
+### **Error Tracking Tests**
+- Validates error classification system
+- Tests retry mechanisms
+- Verifies error data persistence
+- Tests error analysis functionality
+
+### **Data Collection Tests**
+- Tests evaluation data collection
+- Validates data storage mechanisms
+- Tests data retrieval and analysis
+
+### **System Integration Tests**
+- Tests component interactions
+- Validates end-to-end workflows
+- Tests error handling across components
+
+## Test Dependencies
+
+- pytest
+- pandas
+- json
+- unittest.mock (for mocking)
+
 ## Test Data
-Tests use sample data and mock objects to avoid dependencies on external services during testing. 
+
+Tests use sample data and mock responses to avoid affecting production data. 

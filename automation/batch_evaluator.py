@@ -278,6 +278,8 @@ def run_single_batch(batch_id=None):
             rate_limit_hit = False
             error_type = None
             http_status = None
+            final_error = None
+            
             while retry_count < max_retries:
                 start = time.time()
                 try:
@@ -290,6 +292,7 @@ def run_single_batch(batch_id=None):
                     error = None
                     rate_limit_hit = False
                     error_type = None
+                    final_error = None
                     break
                 except Exception as e:
                     latency = None
@@ -298,23 +301,31 @@ def run_single_batch(batch_id=None):
                     total_tokens = prompt_tokens
                     throughput = 0
                     success = False
-                    error = str(e)
-                    # Error parsing for type and rate limit
+                    final_error = str(e)
+                    
+                    # Enhanced error parsing for type and rate limit
                     err_str = str(e).lower()
-                    if any(x in err_str for x in ["rate limit", "too many requests", "429"]):
+                    if any(x in err_str for x in ["rate limit", "too many requests", "429", "quota exceeded"]):
                         rate_limit_hit = True
                         error_type = "rate_limit"
-                    elif any(x in err_str for x in ["timeout", "timed out"]):
+                    elif any(x in err_str for x in ["timeout", "timed out", "time out"]):
                         error_type = "timeout"
-                    elif any(x in err_str for x in ["network", "connection"]):
+                    elif any(x in err_str for x in ["network", "connection", "dns", "unreachable"]):
                         error_type = "network"
-                    elif any(x in err_str for x in ["api", "invalid request", "bad request"]):
+                    elif any(x in err_str for x in ["api", "invalid request", "bad request", "400", "401", "403", "404", "500", "502", "503", "504"]):
                         error_type = "api_error"
+                    elif any(x in err_str for x in ["service unavailable", "maintenance", "offline"]):
+                        error_type = "service_unavailable"
+                    elif any(x in err_str for x in ["authentication", "unauthorized", "forbidden"]):
+                        error_type = "auth_error"
                     else:
                         error_type = "other"
+                    
+                    print(f"[ERROR] {llm['provider']}/{llm['model']} attempt {retry_count + 1}/{max_retries} failed: {error_type} - {final_error}")
+                    
                     retry_count += 1
                     if retry_count < max_retries:
-                        time.sleep(2)
+                        time.sleep(2 ** retry_count)  # Exponential backoff
             # Response quality metrics
             response_length = len(response) if response else 0
             response_contains_context = False
@@ -339,7 +350,7 @@ def run_single_batch(batch_id=None):
                 "total_tokens": total_tokens,
                 "throughput_tps": throughput,
                 "success": success,
-                "error": error,
+                "error": final_error,
                 "batch_id": batch_id,
                 "retry_count": retry_count,
                 "rate_limit_hit": rate_limit_hit,

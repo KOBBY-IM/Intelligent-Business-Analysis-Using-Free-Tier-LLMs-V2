@@ -235,17 +235,21 @@ def create_performance_dashboard(technical_df):
     return fig
 
 def create_failure_analysis(technical_df):
-    """Create failure and rate limit analysis"""
+    """Create comprehensive failure and error analysis"""
     if technical_df.empty:
         return None
     
-    # Calculate failure rates
-    failure_analysis = technical_df.groupby(['llm_model', 'industry']).agg({
+    # Calculate failure rates by provider and model
+    failure_analysis = technical_df.groupby(['llm_provider', 'llm_model', 'industry']).agg({
         'success': ['count', 'sum', 'mean'],
-        'error_message': lambda x: x.notna().sum()
+        'error': lambda x: x.notna().sum(),
+        'error_type': lambda x: x.value_counts().to_dict() if x.notna().any() else {},
+        'rate_limit_hit': 'sum',
+        'retry_count': 'mean'
     }).reset_index()
     
-    failure_analysis.columns = ['LLM Model', 'Industry', 'Total Tests', 'Successful Tests', 'Success Rate', 'Error Count']
+    # Flatten column names
+    failure_analysis.columns = ['Provider', 'LLM Model', 'Industry', 'Total Tests', 'Successful Tests', 'Success Rate', 'Error Count', 'Error Types', 'Rate Limit Hits', 'Avg Retries']
     failure_analysis['Failure Rate'] = 1 - failure_analysis['Success Rate']
     failure_analysis['Success Rate'] = failure_analysis['Success Rate'] * 100
     failure_analysis['Failure Rate'] = failure_analysis['Failure Rate'] * 100
@@ -436,6 +440,325 @@ def create_summary_statistics(technical_df):
     
     return summary_stats
 
+def create_provider_comparison_analysis(technical_df):
+    """Create comprehensive provider-level comparison analysis"""
+    if technical_df.empty:
+        return None, None, None, None
+    
+    # Provider-level aggregations
+    provider_stats = technical_df.groupby('llm_provider').agg({
+        'latency_sec': ['mean', 'std', 'min', 'max'],
+        'throughput_tps': ['mean', 'std', 'min', 'max'],
+        'success': 'mean',
+        'rate_limit_hit': 'sum',
+        'error_type': lambda x: x.value_counts().to_dict() if x.notna().any() else {},
+        'response_length': ['mean', 'std'],
+        'coverage_score': ['mean', 'std'],
+        'retry_count': 'mean'
+    }).round(3)
+    
+    # Flatten column names
+    provider_stats.columns = ['_'.join(col).strip() for col in provider_stats.columns]
+    
+    # Calculate additional provider metrics
+    provider_metrics = {}
+    for provider in technical_df['llm_provider'].unique():
+        provider_data = technical_df[technical_df['llm_provider'] == provider]
+        
+        # Reliability metrics
+        total_requests = len(provider_data)
+        successful_requests = provider_data['success'].sum()
+        reliability_score = (successful_requests / total_requests) * 100
+        
+        # Consistency metrics (lower std = more consistent)
+        latency_consistency = 1 - (provider_data['latency_sec'].std() / provider_data['latency_sec'].mean()) if provider_data['latency_sec'].mean() > 0 else 0
+        throughput_consistency = 1 - (provider_data['throughput_tps'].std() / provider_data['throughput_tps'].mean()) if provider_data['throughput_tps'].mean() > 0 else 0
+        
+        # Error analysis
+        error_counts = provider_data['error_type'].value_counts()
+        most_common_error = error_counts.index[0] if len(error_counts) > 0 else 'None'
+        error_rate = (len(provider_data) - successful_requests) / len(provider_data) * 100
+        
+        # Rate limit analysis
+        rate_limit_incidents = provider_data['rate_limit_hit'].sum()
+        rate_limit_rate = (rate_limit_incidents / total_requests) * 100
+        
+        provider_metrics[provider] = {
+            'total_requests': total_requests,
+            'reliability_score': reliability_score,
+            'latency_consistency': latency_consistency,
+            'throughput_consistency': throughput_consistency,
+            'error_rate': error_rate,
+            'most_common_error': most_common_error,
+            'rate_limit_rate': rate_limit_rate,
+            'avg_response_length': provider_data['response_length'].mean(),
+            'avg_coverage_score': provider_data['coverage_score'].mean()
+        }
+    
+    return provider_stats, provider_metrics
+
+def create_provider_performance_comparison(technical_df):
+    """Create provider performance comparison visualizations"""
+    if technical_df.empty:
+        return None, None, None
+    
+    # Performance comparison by provider
+    fig1 = go.Figure()
+    
+    providers = technical_df['llm_provider'].unique()
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    
+    for i, provider in enumerate(providers):
+        provider_data = technical_df[technical_df['llm_provider'] == provider]
+        
+        fig1.add_trace(go.Box(
+            y=provider_data['latency_sec'],
+            name=f'{provider} - Latency',
+            marker_color=colors[i % len(colors)],
+            boxpoints='outliers'
+        ))
+    
+    fig1.update_layout(
+        title="Provider Latency Comparison",
+        yaxis_title="Latency (seconds)",
+        showlegend=True,
+        height=400
+    )
+    
+    # Throughput comparison
+    fig2 = go.Figure()
+    
+    for i, provider in enumerate(providers):
+        provider_data = technical_df[technical_df['llm_provider'] == provider]
+        
+        fig2.add_trace(go.Box(
+            y=provider_data['throughput_tps'],
+            name=f'{provider} - Throughput',
+            marker_color=colors[i % len(colors)],
+            boxpoints='outliers'
+        ))
+    
+    fig2.update_layout(
+        title="Provider Throughput Comparison",
+        yaxis_title="Throughput (tokens/second)",
+        showlegend=True,
+        height=400
+    )
+    
+    # Reliability comparison
+    fig3 = go.Figure()
+    
+    reliability_data = []
+    for provider in providers:
+        provider_data = technical_df[technical_df['llm_provider'] == provider]
+        success_rate = provider_data['success'].mean() * 100
+        reliability_data.append({
+            'provider': provider,
+            'success_rate': success_rate,
+            'error_rate': 100 - success_rate
+        })
+    
+    reliability_df = pd.DataFrame(reliability_data)
+    
+    fig3.add_trace(go.Bar(
+        x=reliability_df['provider'],
+        y=reliability_df['success_rate'],
+        name='Success Rate (%)',
+        marker_color='green'
+    ))
+    
+    fig3.add_trace(go.Bar(
+        x=reliability_df['provider'],
+        y=reliability_df['error_rate'],
+        name='Error Rate (%)',
+        marker_color='red'
+    ))
+    
+    fig3.update_layout(
+        title="Provider Reliability Comparison",
+        yaxis_title="Rate (%)",
+        barmode='stack',
+        height=400
+    )
+    
+    return fig1, fig2, fig3
+
+def create_provider_industry_analysis(technical_df):
+    """Analyze provider performance across different industries"""
+    if technical_df.empty:
+        return None, None
+    
+    # Provider performance by industry
+    industry_provider_stats = technical_df.groupby(['llm_provider', 'industry']).agg({
+        'latency_sec': 'mean',
+        'throughput_tps': 'mean',
+        'success': 'mean',
+        'coverage_score': 'mean'
+    }).reset_index()
+    
+    # Create heatmap for provider-industry performance
+    fig1 = px.imshow(
+        industry_provider_stats.pivot(index='llm_provider', columns='industry', values='latency_sec'),
+        title="Provider Latency by Industry (seconds)",
+        color_continuous_scale='Reds',
+        aspect='auto'
+    )
+    
+    # Create radar chart for provider comparison
+    fig2 = go.Figure()
+    
+    providers = technical_df['llm_provider'].unique()
+    metrics = ['latency_sec', 'throughput_tps', 'success', 'coverage_score']
+    
+    for provider in providers:
+        provider_data = technical_df[technical_df['llm_provider'] == provider]
+        values = []
+        
+        for metric in metrics:
+            if metric == 'latency_sec':
+                # Invert latency (lower is better)
+                value = 1 / (provider_data[metric].mean() + 1e-6)
+            elif metric == 'throughput_tps':
+                # Normalize throughput
+                value = provider_data[metric].mean() / technical_df[metric].max()
+            else:
+                # Direct values for success and coverage
+                value = provider_data[metric].mean()
+            
+            values.append(value)
+        
+        # Close the radar chart
+        values.append(values[0])
+        
+        fig2.add_trace(go.Scatterpolar(
+            r=values,
+            theta=metrics + [metrics[0]],
+            fill='toself',
+            name=provider
+        ))
+    
+    fig2.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1]
+            )),
+        showlegend=True,
+        title="Provider Performance Radar Chart",
+        height=500
+    )
+    
+    return fig1, fig2
+
+def create_provider_cost_analysis(technical_df):
+    """Create cost analysis for providers (estimated based on token usage)"""
+    if technical_df.empty:
+        return None, None
+    
+    # Estimated pricing (per 1K tokens) - these are approximate free-tier rates
+    pricing = {
+        'groq': {
+            'llama3-70b-8192': 0.0008,
+            'moonshotai/kimi-k2-instruct': 0.0008
+        },
+        'openrouter': {
+            'mistralai/mistral-7b-instruct': 0.0002,
+            'deepseek/deepseek-r1-0528-qwen3-8b': 0.0004
+        }
+    }
+    
+    # Calculate estimated costs
+    cost_data = []
+    for _, row in technical_df.iterrows():
+        provider = row['llm_provider']
+        model = row['llm_model']
+        total_tokens = row['total_tokens']
+        
+        if provider in pricing and model in pricing[provider]:
+            cost_per_1k = pricing[provider][model]
+            estimated_cost = (total_tokens / 1000) * cost_per_1k
+        else:
+            estimated_cost = 0
+        
+        cost_data.append({
+            'provider': provider,
+            'model': model,
+            'total_tokens': total_tokens,
+            'estimated_cost': estimated_cost,
+            'latency_sec': row['latency_sec'],
+            'success': row['success']
+        })
+    
+    cost_df = pd.DataFrame(cost_data)
+    
+    # Cost efficiency analysis
+    cost_efficiency = cost_df.groupby('provider').agg({
+        'estimated_cost': ['sum', 'mean'],
+        'total_tokens': 'sum',
+        'latency_sec': 'mean',
+        'success': 'mean'
+    }).round(6)
+    
+    cost_efficiency.columns = ['total_cost', 'avg_cost_per_request', 'total_tokens', 'avg_latency', 'success_rate']
+    
+    # Cost vs Performance scatter plot
+    fig = px.scatter(
+        cost_df.groupby(['provider', 'model']).agg({
+            'estimated_cost': 'mean',
+            'latency_sec': 'mean',
+            'success': 'mean'
+        }).reset_index(),
+        x='estimated_cost',
+        y='latency_sec',
+        color='provider',
+        size='success',
+        hover_data=['model'],
+        title="Cost vs Performance Analysis",
+        labels={'estimated_cost': 'Estimated Cost per Request ($)', 'latency_sec': 'Average Latency (seconds)'}
+    )
+    
+    return cost_efficiency, fig
+
+def create_provider_trend_analysis(technical_df):
+    """Analyze provider performance trends over time"""
+    if technical_df.empty or 'timestamp' not in technical_df.columns:
+        return None, None
+    
+    # Convert timestamp to datetime
+    tech_df = technical_df.copy()
+    tech_df['timestamp'] = pd.to_datetime(tech_df['timestamp'])
+    tech_df['date'] = tech_df['timestamp'].dt.date
+    
+    # Daily performance trends by provider
+    daily_stats = tech_df.groupby(['date', 'llm_provider']).agg({
+        'latency_sec': 'mean',
+        'throughput_tps': 'mean',
+        'success': 'mean',
+        'rate_limit_hit': 'sum'
+    }).reset_index()
+    
+    # Latency trends
+    fig1 = px.line(
+        daily_stats,
+        x='date',
+        y='latency_sec',
+        color='llm_provider',
+        title="Provider Latency Trends Over Time",
+        labels={'latency_sec': 'Average Latency (seconds)', 'date': 'Date'}
+    )
+    
+    # Success rate trends
+    fig2 = px.line(
+        daily_stats,
+        x='date',
+        y='success',
+        color='llm_provider',
+        title="Provider Success Rate Trends Over Time",
+        labels={'success': 'Success Rate', 'date': 'Date'}
+    )
+    
+    return fig1, fig2
+
 # ---- SIDEBAR FILTERS ----
 def create_sidebar_filters(technical_df):
     """Create sidebar filters for technical metrics analysis"""
@@ -619,6 +942,68 @@ else:
     st.header("💥 Failure Analysis")
     
     if not filtered_tech.empty:
+        # Display comprehensive failure analysis
+        st.subheader("📊 Error and Failure Statistics")
+        
+        # Check if we have any failures
+        total_failures = len(filtered_tech[filtered_tech['success'] == False])
+        total_requests = len(filtered_tech)
+        failure_rate = (total_failures / total_requests) * 100 if total_requests > 0 else 0
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Requests", total_requests)
+        with col2:
+            st.metric("Failed Requests", total_failures)
+        with col3:
+            st.metric("Failure Rate", f"{failure_rate:.2f}%")
+        with col4:
+            st.metric("Success Rate", f"{100 - failure_rate:.2f}%")
+        
+        # Show detailed failure analysis if there are failures
+        if total_failures > 0:
+            st.subheader("🔍 Detailed Error Analysis")
+            
+            # Error types breakdown
+            error_types = filtered_tech[filtered_tech['success'] == False]['error_type'].value_counts()
+            if len(error_types) > 0:
+                st.write("**Error Types Distribution:**")
+                error_df = pd.DataFrame({
+                    'Error Type': error_types.index,
+                    'Count': error_types.values,
+                    'Percentage': (error_types.values / total_failures) * 100
+                })
+                st.dataframe(error_df, use_container_width=True)
+                
+                # Error type visualization
+                fig_error_types = px.pie(
+                    values=error_types.values,
+                    names=error_types.index,
+                    title="Error Types Distribution"
+                )
+                st.plotly_chart(fig_error_types, use_container_width=True)
+            
+            # Provider-specific error analysis
+            st.subheader("🏢 Provider Error Analysis")
+            provider_errors = filtered_tech[filtered_tech['success'] == False].groupby('llm_provider').agg({
+                'error_type': 'value_counts',
+                'error': lambda x: x.iloc[0] if len(x) > 0 else None
+            }).reset_index()
+            
+            if len(provider_errors) > 0:
+                st.write("**Errors by Provider:**")
+                st.dataframe(provider_errors, use_container_width=True)
+            
+            # Show sample error messages
+            st.subheader("📝 Sample Error Messages")
+            sample_errors = filtered_tech[filtered_tech['error'].notna()]['error'].head(5)
+            for i, error in enumerate(sample_errors, 1):
+                with st.expander(f"Error {i}", expanded=False):
+                    st.code(error, language='text')
+        else:
+            st.success("🎉 No failures detected in the current dataset!")
+            st.info("All requests were successful. This indicates good service availability.")
+        
         # Create failure analysis visualizations
         fig1, fig2, fig3 = create_failure_visualizations(filtered_tech)
         
@@ -628,6 +1013,63 @@ else:
             st.plotly_chart(fig2, use_container_width=True)
         if fig3:
             st.plotly_chart(fig3, use_container_width=True)
+    
+    # ---- PROVIDER COMPARISON ANALYSIS ----
+    st.header("🏢 Provider Comparison Analysis")
+    
+    if not filtered_tech.empty:
+        # Generate provider analysis
+        provider_stats, provider_metrics = create_provider_comparison_analysis(filtered_tech)
+        
+        if provider_stats is not None and provider_metrics:
+            # Provider summary statistics
+            st.subheader("📊 Provider Summary Statistics")
+            st.dataframe(provider_stats, use_container_width=True)
+            
+            # Provider metrics overview
+            st.subheader("🎯 Provider Performance Metrics")
+            metrics_df = pd.DataFrame(provider_metrics).T
+            st.dataframe(metrics_df, use_container_width=True)
+            
+            # Provider performance comparison charts
+            st.subheader("📈 Provider Performance Comparison")
+            perf_fig1, perf_fig2, perf_fig3 = create_provider_performance_comparison(filtered_tech)
+            
+            if perf_fig1:
+                st.plotly_chart(perf_fig1, use_container_width=True)
+            if perf_fig2:
+                st.plotly_chart(perf_fig2, use_container_width=True)
+            if perf_fig3:
+                st.plotly_chart(perf_fig3, use_container_width=True)
+            
+            # Provider industry analysis
+            st.subheader("🏭 Provider Performance by Industry")
+            industry_fig1, industry_fig2 = create_provider_industry_analysis(filtered_tech)
+            
+            if industry_fig1:
+                st.plotly_chart(industry_fig1, use_container_width=True)
+            if industry_fig2:
+                st.plotly_chart(industry_fig2, use_container_width=True)
+            
+            # Cost analysis
+            st.subheader("💰 Provider Cost Analysis")
+            cost_efficiency, cost_fig = create_provider_cost_analysis(filtered_tech)
+            
+            if cost_efficiency is not None:
+                st.write("**Cost Efficiency Analysis:**")
+                st.dataframe(cost_efficiency, use_container_width=True)
+            
+            if cost_fig:
+                st.plotly_chart(cost_fig, use_container_width=True)
+            
+            # Trend analysis
+            st.subheader("📈 Provider Performance Trends")
+            trend_fig1, trend_fig2 = create_provider_trend_analysis(filtered_tech)
+            
+            if trend_fig1:
+                st.plotly_chart(trend_fig1, use_container_width=True)
+            if trend_fig2:
+                st.plotly_chart(trend_fig2, use_container_width=True)
     
     # ---- RATE LIMIT ANALYSIS ----
     st.header("⚡ Rate Limit Analysis")
