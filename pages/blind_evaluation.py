@@ -982,84 +982,88 @@ def show_completion_message():
     This feedback will help us understand your general impressions and suggestions for improvement.
     """)
     
-    # Overall ratings
-    st.markdown("#### 📊 Overall Assessment Ratings")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        overall_quality = st.selectbox(
-            "Overall Quality of Responses",
-            options=[1, 2, 3, 4, 5],
-            help="Rate the overall quality of all AI responses you evaluated"
+    # Use a form to prevent unresponsiveness
+    with st.form("final_feedback_form", clear_on_submit=False):
+        # Overall ratings
+        st.markdown("#### 📊 Overall Assessment Ratings")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            overall_quality = st.selectbox(
+                "Overall Quality of Responses",
+                options=[1, 2, 3, 4, 5],
+                help="Rate the overall quality of all AI responses you evaluated"
+            )
+            
+            overall_relevance = st.selectbox(
+                "Overall Relevance of Responses",
+                options=[1, 2, 3, 4, 5],
+                help="Rate how relevant the responses were to the business questions"
+            )
+        
+        with col2:
+            overall_accuracy = st.selectbox(
+                "Overall Accuracy of Responses",
+                options=[1, 2, 3, 4, 5],
+                help="Rate the factual accuracy compared to ground truth data"
+            )
+            
+            overall_usefulness = st.selectbox(
+                "Overall Usefulness for Business",
+                options=[1, 2, 3, 4, 5],
+                help="Rate how useful these responses would be for business decision-making"
+            )
+        
+        # Detailed feedback
+        st.markdown("#### 💭 Detailed Feedback")
+        
+        strengths = st.text_area(
+            "What were the strengths of the AI responses?",
+            placeholder="Describe what worked well, what impressed you, or what was particularly helpful...",
+            height=120
         )
         
-        overall_relevance = st.selectbox(
-            "Overall Relevance of Responses",
-            options=[1, 2, 3, 4, 5],
-            help="Rate how relevant the responses were to the business questions"
-        )
-    
-    with col2:
-        overall_accuracy = st.selectbox(
-            "Overall Accuracy of Responses",
-            options=[1, 2, 3, 4, 5],
-            help="Rate the factual accuracy compared to ground truth data"
+        weaknesses = st.text_area(
+            "What were the weaknesses or areas for improvement?",
+            placeholder="Describe what could be better, what was confusing, or what was missing...",
+            height=120
         )
         
-        overall_usefulness = st.selectbox(
-            "Overall Usefulness for Business",
-            options=[1, 2, 3, 4, 5],
-            help="Rate how useful these responses would be for business decision-making"
+        suggestions = st.text_area(
+            "What suggestions do you have for improving AI business analysis?",
+            placeholder="Share your ideas for how AI could better serve business intelligence needs...",
+            height=120
         )
-    
-    # Detailed feedback
-    st.markdown("#### 💭 Detailed Feedback")
-    
-    strengths = st.text_area(
-        "What were the strengths of the AI responses?",
-        placeholder="Describe what worked well, what impressed you, or what was particularly helpful...",
-        height=120
-    )
-    
-    weaknesses = st.text_area(
-        "What were the weaknesses or areas for improvement?",
-        placeholder="Describe what could be better, what was confusing, or what was missing...",
-        height=120
-    )
-    
-    suggestions = st.text_area(
-        "What suggestions do you have for improving AI business analysis?",
-        placeholder="Share your ideas for how AI could better serve business intelligence needs...",
-        height=120
-    )
-    
-    general_comments = st.text_area(
-        "Any additional comments or observations?",
-        placeholder="Share any other thoughts about the evaluation experience or AI capabilities...",
-        height=100
-    )
-    
-    # Store final feedback in session state
-    final_feedback = {
-        "overall_quality": overall_quality,
-        "overall_relevance": overall_relevance,
-        "overall_accuracy": overall_accuracy,
-        "overall_usefulness": overall_usefulness,
-        "strengths": strengths,
-        "weaknesses": weaknesses,
-        "suggestions": suggestions,
-        "general_comments": general_comments
-    }
-    
-    st.session_state["final_feedback"] = final_feedback
-    
-    # Submit final feedback
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        if st.button("📤 Submit Final Assessment", type="primary", use_container_width=True):
+        
+        general_comments = st.text_area(
+            "Any additional comments or observations?",
+            placeholder="Share any other thoughts about the evaluation experience or AI capabilities...",
+            height=100
+        )
+        
+        # Store final feedback in session state
+        final_feedback = {
+            "overall_quality": overall_quality,
+            "overall_relevance": overall_relevance,
+            "overall_accuracy": overall_accuracy,
+            "overall_usefulness": overall_usefulness,
+            "strengths": strengths,
+            "weaknesses": weaknesses,
+            "suggestions": suggestions,
+            "general_comments": general_comments
+        }
+        
+        st.session_state["final_feedback"] = final_feedback
+        
+        # Submit button inside the form
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        
+        with col2:
+            submitted = st.form_submit_button("📤 Submit Final Assessment", type="primary", use_container_width=True)
+            
+        if submitted:
             # Collect and save final evaluation data
             evaluation_data = collect_final_evaluation_data()
             save_evaluation_data(evaluation_data)
@@ -1069,7 +1073,7 @@ def show_completion_message():
                 mark_evaluation_completed(tester_email)
             # Mark evaluation as submitted to show completion message
             st.session_state["evaluation_submitted"] = True
-        st.rerun()
+            st.rerun()
     
 
 
@@ -1331,6 +1335,10 @@ def show_evaluation_interface():
             "completed_questions": set(),
             "industry_completed": {"retail": False, "finance": False}
         }
+    
+    # Clear any form submission state to prevent conflicts
+    if "form_submitted" in st.session_state:
+        del st.session_state["form_submitted"]
     
     # Get or generate selected questions for each industry
     if "selected_questions" not in st.session_state["evaluation_session"] or not st.session_state["evaluation_session"]["selected_questions"]:
