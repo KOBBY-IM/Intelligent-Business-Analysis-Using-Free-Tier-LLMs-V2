@@ -1059,17 +1059,26 @@ def show_completion_message():
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        if st.button("📤 Submit Final Assessment", type="primary", use_container_width=True):
-            # Collect and save final evaluation data
-            evaluation_data = collect_final_evaluation_data()
-            save_evaluation_data(evaluation_data)
-            # Mark evaluation as completed
-            tester_email = st.session_state.get("user_email")
-            if tester_email:
-                mark_evaluation_completed(tester_email)
-            # Mark evaluation as submitted to show completion message
-            st.session_state["evaluation_submitted"] = True
-        st.rerun()
+        # Check if submission is in progress to prevent multiple submissions
+        submission_in_progress = st.session_state.get("submission_in_progress", False)
+        
+        if st.button("📤 Submit Final Assessment", type="primary", use_container_width=True, disabled=submission_in_progress):
+            # Mark submission as in progress
+            st.session_state["submission_in_progress"] = True
+            
+            with st.spinner("🔄 Submitting your evaluation..."):
+                # Collect and save final evaluation data
+                evaluation_data = collect_final_evaluation_data()
+                save_evaluation_data(evaluation_data)
+                # Mark evaluation as completed
+                tester_email = st.session_state.get("user_email")
+                if tester_email:
+                    mark_evaluation_completed(tester_email)
+                # Mark evaluation as submitted to show completion message
+                st.session_state["evaluation_submitted"] = True
+                # Clear submission progress flag
+                st.session_state["submission_in_progress"] = False
+            st.rerun()
     
 
 
